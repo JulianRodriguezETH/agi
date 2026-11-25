@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+instalador/salida/
+test_results.txt
+test_data/
+# training weights: only for retraining, not shipped with the app
+modelos/*.pth

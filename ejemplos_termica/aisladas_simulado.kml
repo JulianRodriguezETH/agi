@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<name>Reses aisladas</name>
+<Placemark><name>Res aislada #1</name><description>Temperatura 32.8 C. Foto SIM_0072_T.JPG. A 243 m del rebano.</description><Point><coordinates>-71.8469735,6.9522786,0</coordinates></Point></Placemark>
+<Placemark><name>Res aislada #2</name><description>Temperatura 32.0 C. Foto SIM_0081_T.JPG. A 164 m del rebano.</description><Point><coordinates>-71.8497647,6.9524360,0</coordinates></Point></Placemark>
+<Placemark><name>Res aislada #3</name><description>Temperatura 34.0 C. Foto SIM_0013_T.JPG. A 162 m del rebano.</description><Point><coordinates>-71.8472574,6.9504123,0</coordinates></Point></Placemark>
+<Placemark><name>Res aislada #4</name><description>Temperatura 33.2 C. Foto SIM_0013_T.JPG. A 160 m del rebano.</description><Point><coordinates>-71.8472801,6.9503944,0</coordinates></Point></Placemark>
+</Document></kml>

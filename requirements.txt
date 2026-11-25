@@ -1,0 +1,20 @@
+# Para contar (contar.py): esto es todo lo que necesita el aplicativo final
+onnxruntime
+opencv-python
+numpy
+
+# Para la aplicacion de escritorio (app.py)
+PySide6-Essentials
+cryptography
+sqlcipher3-wheels
+openpyxl            # exportar a Excel
+
+# Solo para entrenar o exportar (entrenar.py, exportar.py)
+# torch
+# torchvision
+# loguru
+# tabulate
+# psutil
+# pycocotools
+
+# termica.py usa opencv y numpy (ya listados) mas el DJI Thermal SDK, que se descarga aparte

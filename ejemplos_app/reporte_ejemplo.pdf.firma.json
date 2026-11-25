@@ -1,0 +1,62 @@
+{
+ "manifiesto": {
+  "version": 1,
+  "tipo": "conteo",
+  "finca": "Example Ranch A",
+  "propietario": "Example Owner",
+  "fecha_vuelo": "2026-11-22",
+  "emitido": "2026-11-25T11:01:53-05:00",
+  "usuario": "rancher",
+  "total": 45,
+  "ia": 45,
+  "manual": 0,
+  "quitadas": 0,
+  "umbral": 0.3,
+  "escala": 1.0,
+  "bitacora_previa": "95f22893b74948076bd4f93959fa83bf675fa8a010e76c77a6586ebe32513a22",
+  "fotos": [
+   {
+    "nombre": "0000_v1_00m00s_DJI_20261122_0001.jpg",
+    "sha256": "29c9e17bb5fa0a06548c35eb425d108251b7fce1f3c98e89c4862f17a6cbbf72",
+    "total": 44,
+    "ia": 44,
+    "manual": 0,
+    "quitadas": 0,
+    "revisada": true
+   },
+   {
+    "nombre": "0001_v1_00m15s_DJI_20261122_0001.jpg",
+    "sha256": "837c5f3533f283665a1a0af27b7b6d19c310e96908fcdc09ee90b57aec098b70",
+    "total": 1,
+    "ia": 1,
+    "manual": 0,
+    "quitadas": 0,
+    "revisada": true
+   }
+  ],
+  "modelo_sha256": "838879bd19a47126bf69aea64df5e13ebd9c91ef59a40ffa589850f4ca685c5a",
+  "hallazgos": [
+   "4 cattle missing without explanation: with the sales, purchases and births logged since Oct 20, 2026 there should be 49"
+  ],
+  "origen": {
+   "videos": [
+    "DJI_20261122_0001.MP4"
+   ],
+   "duracion_s": 15.0,
+   "puntos": 2,
+   "partes": 1
+  },
+  "cuadre": {
+   "fecha_base": "2026-10-20",
+   "base": 61,
+   "entradas": 2,
+   "salidas": 14,
+   "esperadas": 49,
+   "diferencia": -4
+  },
+  "mapa_sha256": "3c1028b6c7e558d919eeba42059c65a6de4dc00bdf75a4ecf1883ce5327b5411"
+ },
+ "pdf_sha256": "7bb77ce5da161eb4cd624ec1f36b820fee879315a06f5e7d4361e613b0db1f7e",
+ "llave_publica": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAWZ0c2mfDCMEVh/6nZ49TQQVR667djZ665cyfyUT6h3g=\n-----END PUBLIC KEY-----\n",
+ "firma": "mMuJJJTfy0I0lKqo/2ipmxX4gOlhDVkhwDlQEFv+EaBJQwGVEEN8tzSLTgfa7pJnEtGTUg70PgQRKSTIZbpJDw=="
+}

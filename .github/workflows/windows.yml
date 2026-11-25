@@ -1,0 +1,61 @@
+# On every push: runs the tests on a GitHub Windows x64 machine and builds the installer.
+# The installer can be downloaded from the repository's Actions tab ("Artifacts" section).
+name: Windows - tests and installer
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+          cache: pip
+
+      - name: Install libraries
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Security and data tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python probar_seguridad.py
+
+      - name: App tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python probar_app.py
+
+      - name: Build AGI.exe
+        run: python -m PyInstaller agi.spec --noconfirm
+
+      - name: Self-test of AGI.exe (model, fonts, encrypted DB, PDF, Excel, video)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist\AGI\AGI.exe -ArgumentList "--autoprueba", "$PWD\autoprueba.txt" -Wait -PassThru
+          if (Test-Path autoprueba.txt) { Get-Content autoprueba.txt }
+          if ($p.ExitCode -ne 0) { throw "AGI.exe self-test failed (code $($p.ExitCode))" }
+
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          $version = python instalador\version.py
+          & $iscc "/DVersion=$version" instalador\agi.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AGI-windows-installer
+          path: instalador/salida/*.exe
+          retention-days: 30

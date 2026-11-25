@@ -1,0 +1,24 @@
+imagenes de entrenamiento: 3267  dispositivo: cpu
+it   20    4.0%  lr 0.00200  perdida 5.565  iou 2.63 obj 1.80 cls 0.71  1.3 min
+it   40    8.2%  lr 0.00199  perdida 4.257  iou 1.96 obj 1.32 cls 0.53  2.7 min
+it   60   12.4%  lr 0.00196  perdida 4.019  iou 2.29 obj 0.97 cls 0.59  4.0 min
+it   80   16.8%  lr 0.00191  perdida 3.803  iou 2.18 obj 0.78 cls 0.57  5.5 min
+it  100   21.3%  lr 0.00184  perdida 3.734  iou 2.21 obj 1.37 cls 0.58  6.9 min
+it  120   26.6%  lr 0.00174  perdida 3.556  iou 1.87 obj 0.72 cls 0.52  8.6 min
+it  140   31.0%  lr 0.00164  perdida 3.357  iou 1.95 obj 0.81 cls 0.53  10.0 min
+it  160   35.1%  lr 0.00153  perdida 3.325  iou 1.78 obj 0.93 cls 0.50  11.3 min
+it  180   39.4%  lr 0.00141  perdida 3.254  iou 1.84 obj 0.66 cls 0.51  12.7 min
+it  200   43.8%  lr 0.00128  perdida 3.072  iou 1.82 obj 0.67 cls 0.50  14.1 min
+it  220   48.3%  lr 0.00115  perdida 3.175  iou 2.10 obj 0.73 cls 0.54  15.5 min
+it  240   52.7%  lr 0.00101  perdida 3.201  iou 1.95 obj 0.76 cls 0.52  16.9 min
+it  260   57.0%  lr 0.00088  perdida 3.065  iou 2.04 obj 0.67 cls 0.54  18.3 min
+it  280   61.2%  lr 0.00076  perdida 3.069  iou 1.87 obj 0.60 cls 0.51  19.7 min
+it  300   65.7%  lr 0.00063  perdida 3.044  iou 2.12 obj 0.85 cls 0.56  21.1 min
+it  320   70.1%  lr 0.00051  perdida 2.991  iou 1.73 obj 0.65 cls 0.49  22.5 min
+it  340   74.3%  lr 0.00041  perdida 2.884  iou 1.58 obj 0.56 cls 0.45  23.9 min
+it  360   78.7%  lr 0.00032  perdida 2.861  iou 1.88 obj 0.77 cls 0.52  25.2 min
+it  380   83.2%  lr 0.00024  perdida 2.913  iou 1.58 obj 0.54 cls 0.46  26.7 min
+it  400   87.7%  lr 0.00017  perdida 2.871  iou 1.51 obj 0.52 cls 0.45  28.1 min
+it  420   92.1%  lr 0.00013  perdida 2.843  iou 1.49 obj 0.55 cls 0.44  29.5 min
+it  440   96.6%  lr 0.00011  perdida 2.878  iou 1.61 obj 0.53 cls 0.47  31.0 min
+FIN  iteraciones 454  imagenes vistas 3632  (1.11 pasadas)  32.0 min

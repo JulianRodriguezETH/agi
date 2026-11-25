@@ -1,0 +1,7 @@
+*.bat text eol=crlf
+*.iss text eol=crlf
+*.onnx binary
+*.png binary
+*.jpg binary
+*.ttf binary
+*.ico binary
