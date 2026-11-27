@@ -29,16 +29,18 @@ CAJA_IA, CAJA_MANUAL = (90, 165, 255), (95, 211, 141)   # RGB de los recuadros: 
 CAIDA_ALERTA = 5.0       # % de caida entre dos conteos que se resalta en el historial
 
 # Tema oscuro y sobrio: fondo negro, tarjetas gris carbon, texto blanco. El acento es el propio blanco y,
-# para lo destacado, un azul pizarra; no hay color de marca aparte.
+# para lo destacado, hueso (claro sobre el negro); no hay color de marca aparte.
 TINTA, GRIS, FONDO, LINEA, ACENTO = "#0A0A0A", "#A6A6A6", "#000000", "#262626", "#FFFFFF"
 CLARO = "#D9D9D9"        # texto secundario sobre las tarjetas destacadas
 TEXTO, SUPERFICIE, RELIEVE, BORDE = "#FFFFFF", "#141414", "#1F1F1F", "#333333"   # TINTA queda para texto sobre blanco
-VERDE, ROJO, AZUL = "#5FD38D", "#FF7B72", "#9DBDF2"                               # estados, legibles sobre negro
+VERDE, ROJO, AZUL = "#5FD38D", "#FF7B72", "#E6DFD3"                               # estados, legibles sobre negro
 FONDO_VERDE, FONDO_ROJO = "#12301F", "#3A1614"
-SELECCION = "#1E2A40"    # fila o texto seleccionado
-# tarjeta destacada: degradado azul pizarra que se apaga hacia el negro
-DEGRADADO = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #34486A, stop:1 #10141B)"
-DEGRADADO_SUAVE = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1D2636, stop:1 #0B0D11)"      # el mismo, mas apagado
+SELECCION = "#302C26"    # fila o texto seleccionado
+HUESO, HUESO_OSCURO = "#F6F4F0", "#D9D3C9"   # el degradado de las tarjetas destacadas, claro sobre el negro
+TINTA_HUESO, TINTA_HUESO_2 = "#141414", "rgba(20, 20, 20, 0.62)"   # texto sobre esas tarjetas
+# tarjeta destacada: degradado hueso, de claro a arena
+DEGRADADO = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #F6F4F0, stop:1 #D9D3C9)"
+DEGRADADO_SUAVE = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2A2722, stop:1 #0D0C0B)"      # el mismo, mas apagado
 SOMBRAS = os.environ.get("AGI_SIN_SOMBRAS") != "1"
 _fuentes_listas = False
 
@@ -274,14 +276,16 @@ def icono(nombre, color, lado=16):
     return pm
 
 
-def insignia(nombre, lado=48):
-    """Un icono de linea dentro de un circulo translucido: encabeza las tarjetas y los datos destacados."""
+def insignia(nombre, lado=48, claro=False):
+    """Un icono de linea dentro de un circulo translucido: encabeza las tarjetas y los datos destacados.
+    claro=True para ponerla sobre una tarjeta destacada (fondo hueso): icono y aro oscuros."""
     e = QtWidgets.QLabel()
     e.setObjectName("insignia")
     e.setFixedSize(lado, lado)
     e.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-    e.setPixmap(icono(nombre, "#FFFFFF", round(lado * 0.46)))
-    e.setStyleSheet(f"background: rgba(182, 211, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.16); "
+    e.setPixmap(icono(nombre, TINTA_HUESO if claro else "#FFFFFF", round(lado * 0.46)))
+    fondo, aro = ("rgba(20, 20, 20, 0.07)", "rgba(20, 20, 20, 0.16)") if claro else ("rgba(230, 223, 211, 0.10)", "rgba(255, 255, 255, 0.16)")
+    e.setStyleSheet(f"background: {fondo}; border: 1px solid {aro}; "
                     f"border-radius: {lado // 2 - 1}px;")
     return e
 
@@ -305,7 +309,7 @@ def _foto_termica():
 
 
 class Panel(QtWidgets.QFrame):
-    """Tarjeta pintada a mano, para darle profundidad: un degradado azul pizarra que se apaga hacia el negro, una luz
+    """Tarjeta pintada a mano, para darle profundidad: las destacadas en hueso, claras sobre el negro, las demas en grafito calido, una luz
     suave que entra por la esquina de arriba y un borde fino mas claro arriba que abajo, como un vidrio.
     El panel de la marca (entrada y bloqueo) lleva de fondo una toma termica de ejemplo.
     El acabado sale del nombre del objeto (ver PANELES); con otro nombre se comporta como un QFrame cualquiera."""
@@ -321,8 +325,8 @@ class Panel(QtWidgets.QFrame):
         forma = QtGui.QPainterPath()
         forma.addRoundedRect(r, radio, radio)
         borde_arriba, borde_abajo = 46, 10
-        if tipo == "marca":                     # la pantalla de entrada: una toma termica al fondo, velada en azul
-            p.fillPath(forma, C("#05070B"))
+        if tipo == "marca":                     # la pantalla de entrada: una toma termica al fondo, velada en hueso
+            p.fillPath(forma, C("#070706"))
             foto = _foto_termica()
             if foto is not None:
                 escala = max(r.width() / foto.width(), r.height() / foto.height())
@@ -332,8 +336,8 @@ class Panel(QtWidgets.QFrame):
                 p.drawImage(QtCore.QRectF(r.center().x() - w / 2, r.center().y() - h / 2, w, h), foto)
                 p.setOpacity(1.0)
             g = QtGui.QLinearGradient(r.topLeft(), r.bottomRight())
-            g.setColorAt(0.0, C(107, 155, 225, 96))
-            g.setColorAt(1.0, C(5, 7, 11, 150))
+            g.setColorAt(0.0, C(230, 223, 211, 70))
+            g.setColorAt(1.0, C(5, 5, 5, 150))
             p.fillPath(forma, g)
             velo = QtGui.QLinearGradient(r.topLeft(), r.bottomLeft())
             velo.setColorAt(0.0, C(0, 0, 0, 70))
@@ -342,22 +346,26 @@ class Panel(QtWidgets.QFrame):
             p.fillPath(forma, velo)
             return
         if tipo == "destacado":
-            p.fillPath(forma, C("#0A0D13"))
             g = QtGui.QLinearGradient(r.topLeft(), r.bottomRight())
-            g.setColorAt(0.0, C(107, 155, 225, 132))
-            g.setColorAt(0.55, C(107, 155, 225, 46))
-            g.setColorAt(1.0, C(107, 155, 225, 10))
+            g.setColorAt(0.0, C(HUESO))
+            g.setColorAt(1.0, C(HUESO_OSCURO))
             p.fillPath(forma, g)
             luz = QtGui.QRadialGradient(P(r.left() + r.width() * 0.22, r.top()), max(r.width() * 0.62, 180.0))
-            luz.setColorAt(0.0, C(190, 215, 255, 64))
-            luz.setColorAt(1.0, C(190, 215, 255, 0))
+            luz.setColorAt(0.0, C(255, 255, 255, 120))
+            luz.setColorAt(1.0, C(255, 255, 255, 0))
             p.fillPath(forma, luz)
-            borde_arriba, borde_abajo = 86, 14
+            b = QtGui.QLinearGradient(r.topLeft(), r.bottomLeft())
+            b.setColorAt(0.0, C(255, 255, 255, 230))
+            b.setColorAt(1.0, C(120, 110, 95, 90))
+            p.setPen(QtGui.QPen(QtGui.QBrush(b), 1.0))
+            p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+            p.drawPath(forma)
+            return
         elif tipo == "suave":
-            p.fillPath(forma, C("#0B0D11"))
+            p.fillPath(forma, C("#0D0C0B"))
             g = QtGui.QLinearGradient(r.topLeft(), r.bottomRight())
-            g.setColorAt(0.0, C(107, 155, 225, 58))
-            g.setColorAt(1.0, C(107, 155, 225, 0))
+            g.setColorAt(0.0, C(230, 223, 211, 40))
+            g.setColorAt(1.0, C(230, 223, 211, 0))
             p.fillPath(forma, g)
         elif tipo == "carta":
             g = QtGui.QLinearGradient(r.topLeft(), r.bottomLeft())
@@ -365,8 +373,8 @@ class Panel(QtWidgets.QFrame):
             g.setColorAt(1.0, C("#101011"))
             p.fillPath(forma, g)
             luz = QtGui.QRadialGradient(P(r.center().x(), r.top()), max(r.width() * 0.55, 160.0))
-            luz.setColorAt(0.0, C(150, 185, 255, 20))
-            luz.setColorAt(1.0, C(150, 185, 255, 0))
+            luz.setColorAt(0.0, C(240, 232, 220, 18))
+            luz.setColorAt(1.0, C(240, 232, 220, 0))
             p.fillPath(forma, luz)
         else:                                   # caja: un vidrio apenas mas claro que lo que tiene debajo
             p.fillPath(forma, C(255, 255, 255, 14))
@@ -380,12 +388,12 @@ class Panel(QtWidgets.QFrame):
 
 
 def brillo(w):
-    """Un resplandor azul bajo la tarjeta destacada de una pantalla. Solo para tarjetas que no estan dentro de otra con sombra."""
+    """Un resplandor hueso bajo la tarjeta destacada de una pantalla. Solo para tarjetas que no estan dentro de otra con sombra."""
     if SOMBRAS:
         e = QtWidgets.QGraphicsDropShadowEffect(w)
         e.setBlurRadius(56)
         e.setOffset(0, 14)
-        e.setColor(QtGui.QColor(64, 112, 210, 64))
+        e.setColor(QtGui.QColor(230, 223, 211, 46))
         w.setGraphicsEffect(e)
     return w
 

@@ -16,7 +16,7 @@ from piezas import CAJA_IA, CAJA_MANUAL, guardar_imagen, leer_imagen
 
 # El PDF es un documento para imprimir: papel blanco, tinta negra y grises neutros. No sigue el tema de la aplicacion.
 TINTA, GRIS, FONDO, LINEA, CLARO = "#0A0A0A", "#5C5C5C", "#F5F5F5", "#E5E5E5", "#D9D9D9"
-ACENTO, FILETE = "#FFFFFF", "#6B9BE1"      # numero destacado sobre las cajas negras; filete azul pizarra bajo la franja
+ACENTO, FILETE = "#FFFFFF", "#CFC7B9"      # numero destacado sobre las cajas negras; filete hueso bajo la franja
 
 
 def resumen_total(fotos, umbral):
@@ -62,7 +62,7 @@ def generar(base, ruta, fotos, finca, propietario, fecha_vuelo, umbral, escala, 
         base.poner_referencia(conteo_id, referencia)
     publica = base.llave_publica()
 
-    # 2) el PDF, con la identidad de AGI: franja negra con el logo, filete azul pizarra, Manrope en titulos
+    # 2) el PDF, con la identidad de AGI: franja negra con el logo, filete hueso, Manrope en titulos
     fecha_txt = _fecha(fecha_vuelo)
     lugar = f"{finca} · {potrero}" if potrero else finca
     pdf = _Pdf(ruta, lugar, fecha_txt, codigo)
@@ -138,7 +138,7 @@ def generar(base, ruta, fotos, finca, propietario, fecha_vuelo, umbral, escala, 
 MESES = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
          "November", "December")
 ROJO, ROJO_FONDO = "#9B1C1C", "#FBEAEA"
-AVISO, AVISO_FONDO = "#2B4A7F", "#EAF0FA"       # hallazgos: azul pizarra, como los avisos de la aplicacion
+AVISO, AVISO_FONDO = "#6E6252", "#F3F0EA"       # hallazgos: hueso, como los avisos de la aplicacion
 VERDE, VERDE_FONDO = "#1E6B3A", "#E7F3EA"
 COLOR_IA, COLOR_MANUAL = "#%02X%02X%02X" % CAJA_IA, "#%02X%02X%02X" % CAJA_MANUAL     # los mismos de los recuadros
 LETRA = ["Segoe UI", "Inter", "Helvetica", "Arial"]

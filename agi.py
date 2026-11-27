@@ -25,7 +25,7 @@ import excel
 import reporte
 import seguridad
 import vuelo
-from piezas import (ACENTO, ARCHIVO_REVISION, AZUL, BORDE, CLARO, CONF_DEFECTO, FONDO, FONDO_ROJO,
+from piezas import (TINTA_HUESO, TINTA_HUESO_2, ACENTO, ARCHIVO_REVISION, AZUL, BORDE, CLARO, CONF_DEFECTO, FONDO, FONDO_ROJO,
                     GRIS, LINEA, MODELO, RELIEVE, ROJO, SELECCION, SUPERFICIE, TEXTO, TINTA, VERDE,
                     Detector, DialogoAcceso, DialogoRespaldo, DialogoUsuarios, Extractor, Foto, Marca, Panel, Visor,
                     brillo, cargar_fuentes, carpeta_datos, comprobar_modelo, crear_sesion, guardar_imagen, icono,
@@ -35,7 +35,7 @@ CAIDA_ALERTA = 5.0
 MESES = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 TITULOS = '"Manrope", "Segoe UI", "Inter", sans-serif'      # Manrope va en la carpeta fuentes/
 
-# Tema oscuro: pagina negra, tarjetas gris carbon con borde fino, botones en pildora; blanco como acento y azul pizarra en lo destacado.
+# Tema oscuro: pagina negra, tarjetas gris carbon con borde fino, botones en pildora; blanco como acento y hueso en lo destacado.
 # Ojo con las pildoras: Qt dibuja la esquina cuadrada si el radio no es menor que la mitad del alto; por eso cada
 # boton fija su alto minimo y usa un radio un poco menor.
 ESTILO = f"""
@@ -60,41 +60,41 @@ QMainWindow, QDialog, #pagina {{ background: {FONDO}; }}
 #rotulo {{ color: {GRIS}; font-size: 11px; font-weight: 600; }}
 #numero {{ font-family: {TITULOS}; font-size: 64px; font-weight: 700; }}
 #numero_med {{ font-family: {TITULOS}; font-size: 28px; font-weight: 700; }}
-#heroe QLabel {{ background: transparent; color: {CLARO}; }}
+#heroe QLabel {{ background: transparent; color: {TINTA_HUESO_2}; }}
 #heroe QLabel#heroe_rotulo {{ font-size: 11px; font-weight: 600; letter-spacing: 1.4px; }}
-#heroe QLabel#heroe_numero {{ color: {ACENTO}; font-family: {TITULOS}; font-size: 60px; font-weight: 700; }}
-#heroe QLabel#heroe_valor {{ color: {TEXTO}; font-family: {TITULOS}; font-size: 24px; font-weight: 700; }}
-#premio QLabel {{ background: transparent; color: {CLARO}; font-size: 15px; }}
+#heroe QLabel#heroe_numero {{ color: {TINTA_HUESO}; font-family: {TITULOS}; font-size: 60px; font-weight: 700; }}
+#heroe QLabel#heroe_valor {{ color: {TINTA_HUESO}; font-family: {TITULOS}; font-size: 24px; font-weight: 700; }}
+#premio QLabel {{ background: transparent; color: {TINTA_HUESO_2}; font-size: 15px; }}
 #premio QLabel#heroe_rotulo {{ font-size: 12px; font-weight: 600; letter-spacing: 1.6px; }}
-#premio QLabel#heroe_numero {{ color: {ACENTO}; font-family: {TITULOS}; font-size: 84px; font-weight: 700; }}
+#premio QLabel#heroe_numero {{ color: {TINTA_HUESO}; font-family: {TITULOS}; font-size: 84px; font-weight: 700; }}
 #separador {{ background: rgba(255, 255, 255, 0.10); max-width: 1px; min-width: 1px; }}
 #beneficios QLabel {{ background: transparent; }}
-#anuncio QLabel {{ background: transparent; color: {CLARO}; font-size: 15px; }}
-#anuncio QLabel#h3 {{ color: {TEXTO}; font-size: 18px; }}
+#anuncio QLabel {{ background: transparent; color: {TINTA_HUESO_2}; font-size: 15px; }}
+#anuncio QLabel#h3 {{ color: {TINTA_HUESO}; font-size: 18px; }}
 #caja QLabel {{ background: transparent; }}
-#aviso QLabel {{ color: {TEXTO}; background: transparent; }}
-#aviso QPushButton {{ color: {AZUL}; font-weight: 600; border: none; background: transparent; text-decoration: underline; padding: 8px; }}
+#aviso QLabel {{ color: {TINTA_HUESO}; background: transparent; }}
+#aviso QPushButton {{ color: {TINTA_HUESO}; font-weight: 600; border: none; background: transparent; text-decoration: underline; padding: 8px; }}
 #paso {{ font-size: 15px; color: {GRIS}; }}
 #paso[estado="actual"] {{ color: {TEXTO}; font-weight: 600; }}
 #paso_n {{ border-radius: 13px; font-size: 13px; font-weight: 600; border: 1px solid #5A5A5A; color: {GRIS}; background: transparent; }}
 #paso_n[estado="actual"] {{ background: {ACENTO}; border-color: {ACENTO}; color: {TINTA}; }}
-#paso_n[estado="hecho"] {{ background: rgba(157, 189, 242, 0.16); border-color: rgba(157, 189, 242, 0.45); color: {ACENTO}; }}
+#paso_n[estado="hecho"] {{ background: rgba(230, 223, 211, 0.16); border-color: rgba(230, 223, 211, 0.45); color: {ACENTO}; }}
 QPushButton {{ background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 19px; min-height: 19px; padding: 10px 16px; font-weight: 600; color: {TEXTO}; }}
 QPushButton:hover {{ border-color: rgba(255, 255, 255, 0.34); background: rgba(255, 255, 255, 0.13); }}
 QPushButton:pressed {{ background: rgba(255, 255, 255, 0.05); }}
 QPushButton:disabled {{ color: #666666; border-color: rgba(255, 255, 255, 0.07); background: rgba(255, 255, 255, 0.03); }}
-QPushButton#primario {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #D9E0EC); color: {TINTA}; border: 1px solid {ACENTO}; border-radius: 21px; min-height: 20px; padding: 12px 24px; font-weight: 600; font-size: 15px; }}
-QPushButton#primario:hover {{ background: #FFFFFF; border-color: #FFFFFF; }}
-QPushButton#primario:pressed {{ background: #CCCCCC; border-color: #CCCCCC; }}
+QPushButton#primario {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F6F4F0, stop:1 #D9D3C9); color: {TINTA}; border: 1px solid {ACENTO}; border-radius: 21px; min-height: 20px; padding: 12px 24px; font-weight: 600; font-size: 15px; }}
+QPushButton#primario:hover {{ background: #F6F4F0; border-color: #F6F4F0; }}
+QPushButton#primario:pressed {{ background: #C9C2B6; border-color: #C9C2B6; }}
 QPushButton#primario:disabled {{ background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.05); color: #666666; }}
 QPushButton#secundario {{ background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 21px; min-height: 20px; padding: 12px 20px; font-weight: 600; font-size: 15px; }}
 QPushButton#secundario:hover {{ border-color: rgba(255, 255, 255, 0.34); background: rgba(255, 255, 255, 0.13); }}
-QPushButton#secundario:checked {{ background: rgba(157, 189, 242, 0.22); color: {TEXTO}; border-color: {AZUL}; }}
+QPushButton#secundario:checked {{ background: rgba(230, 223, 211, 0.18); color: {TEXTO}; border-color: {AZUL}; }}
 QPushButton#plano {{ border: none; background: transparent; color: {GRIS}; padding: 10px 12px; font-weight: 500; }}
 QPushButton#plano:hover {{ color: {TEXTO}; background: transparent; }}
 QLineEdit, QComboBox, QDateEdit, QSpinBox {{ min-height: 42px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 0 12px; background: rgba(0, 0, 0, 0.35); color: {TEXTO};
-    selection-background-color: #34486A; selection-color: {TEXTO}; }}
-QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus {{ border: 1px solid {AZUL}; background: rgba(107, 155, 225, 0.10); }}
+    selection-background-color: #4A443B; selection-color: {TEXTO}; }}
+QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus {{ border: 1px solid {AZUL}; background: rgba(230, 223, 211, 0.07); }}
 QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled, QSpinBox:disabled {{ color: #808080; border-color: rgba(255, 255, 255, 0.07); }}
 QLineEdit:read-only {{ color: {GRIS}; }}
 QTableWidget {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1A1A1C, stop:1 #101011); border: 1px solid #2A2A2D; border-radius: 16px; padding: 6px; gridline-color: {RELIEVE}; }}
@@ -151,8 +151,12 @@ QPushButton#enlace {{ color: {AZUL}; font-weight: 600; border: none; background:
 QPushButton#pestana {{ border: none; background: transparent; color: {GRIS}; padding: 6px 12px; min-height: 16px; border-radius: 13px; font-size: 13px; font-weight: 600; }}
 QPushButton#pestana:checked {{ background: rgba(255, 255, 255, 0.12); color: {TEXTO}; }}
 QPushButton#pestana:hover {{ color: {TEXTO}; }}
-#caja_oscura QLabel {{ background: transparent; color: {CLARO}; }}
-#caja_oscura QLabel#numero_med {{ color: {ACENTO}; }}
+#heroe QLabel, #heroe QLabel#gris, #heroe QLabel#sub, #heroe QLabel#rotulo {{ background: transparent; color: {TINTA_HUESO_2}; }}
+#premio QLabel, #premio QLabel#gris, #premio QLabel#sub, #premio QLabel#rotulo {{ background: transparent; color: {TINTA_HUESO_2}; }}
+#anuncio QLabel, #anuncio QLabel#gris, #anuncio QLabel#sub, #anuncio QLabel#rotulo {{ background: transparent; color: {TINTA_HUESO_2}; }}
+#aviso QLabel, #aviso QLabel#gris, #aviso QLabel#sub, #aviso QLabel#rotulo {{ background: transparent; color: {TINTA_HUESO_2}; }}
+#caja_oscura QLabel, #caja_oscura QLabel#gris, #caja_oscura QLabel#sub, #caja_oscura QLabel#rotulo {{ background: transparent; color: {TINTA_HUESO_2}; }}
+#aviso QLabel, #caja_oscura QLabel#numero_med, #caja_oscura QLabel#h3, #anuncio QLabel#h3, #heroe QLabel#heroe_numero, #premio QLabel#heroe_numero {{ color: {TINTA_HUESO}; }}
 """
 
 
@@ -163,7 +167,7 @@ def paleta_oscura():
     for rol, color in ((R.Window, FONDO), (R.WindowText, TEXTO), (R.Base, "#0D0D0D"), (R.AlternateBase, "#1A1A1A"),
                        (R.Text, TEXTO), (R.Button, RELIEVE), (R.ButtonText, TEXTO), (R.BrightText, TEXTO),
                        (R.ToolTipBase, "#262626"), (R.ToolTipText, TEXTO), (R.PlaceholderText, "#808080"),
-                       (R.Highlight, "#34486A"), (R.HighlightedText, TEXTO), (R.Link, AZUL),
+                       (R.Highlight, "#4A443B"), (R.HighlightedText, TEXTO), (R.Link, AZUL),
                        (R.Light, "#3D3D3D"), (R.Midlight, "#2E2E2E"), (R.Mid, BORDE), (R.Dark, "#0A0A0A"), (R.Shadow, "#000000")):
         p.setColor(rol, C(color))
     for rol in (R.WindowText, R.Text, R.ButtonText):
@@ -204,7 +208,7 @@ def heroe(rotulo, numero, abajo=None, derecha=None, centro=False, icono_=None):
         v.setContentsMargins(28, 30, 28, 34)
         v.setSpacing(2)
         if icono_:
-            v.addWidget(insignia(icono_, 52), 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
+            v.addWidget(insignia(icono_, 52, claro=True), 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
             v.addSpacing(14)
         rotulo.setObjectName("heroe_rotulo")
         numero.setObjectName("heroe_numero")
@@ -453,8 +457,8 @@ class Barras(QtWidgets.QWidget):
             p.setPen(QtCore.Qt.PenStyle.NoPen)
             barra = QtCore.QRectF(x, base_y - h, ancho, h)
             g = QtGui.QLinearGradient(barra.topLeft(), barra.bottomLeft())      # la ultima brilla; las demas son vidrio
-            g.setColorAt(0.0, QtGui.QColor("#FFFFFF" if ultima else "#5C6470"))
-            g.setColorAt(1.0, QtGui.QColor("#9DBDF2" if ultima else "#2A2E35"))
+            g.setColorAt(0.0, QtGui.QColor("#F6F4F0" if ultima else "#5E5A54"))
+            g.setColorAt(1.0, QtGui.QColor("#CFC7B9" if ultima else "#2C2A27"))
             p.setBrush(g)
             p.drawRoundedRect(barra, 7, 7)
             p.setPen(QtGui.QColor(TEXTO))
@@ -1573,7 +1577,7 @@ class PaginaContar(QtWidgets.QWidget):
         q = self.cuadre_ahora()
         if q and q["movimientos"]:
             ok = abs(q["diferencia"]) < max(datos.MARGEN_CUADRE, round(q["esperadas"] * CAIDA_ALERTA / 100.0))
-            self.r_hall.addWidget(insignia("cuadre", 44), 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
+            self.r_hall.addWidget(insignia("cuadre", 44, claro=True), 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
             self.r_hall.addSpacing(6)
             self.r_hall.addWidget(centrado(etiqueta("Inventory reconciliation", "h3")))
             self.r_hall.addWidget(centrado(etiqueta(f"{texto_cuadre(q)} · AGI counted {miles(q['contadas'])}"
@@ -1582,7 +1586,7 @@ class PaginaContar(QtWidgets.QWidget):
             if self.r_hall.count():
                 self.r_hall.addSpacing(14)
             else:
-                self.r_hall.addWidget(insignia("lupa", 44), 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
+                self.r_hall.addWidget(insignia("lupa", 44, claro=True), 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
                 self.r_hall.addSpacing(6)
             self.r_hall.addWidget(centrado(etiqueta("Findings during the count", "h3")))
         for h in hall:
