@@ -193,30 +193,195 @@ class Marca(QtWidgets.QWidget):
                        QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter, "AGI")
 
 
+def _iconos():
+    """Los trazos de cada icono sobre una cuadricula de 24: una lista de (tipo, datos) que icono() dibuja."""
+    P = QtCore.QPointF
+    cuernos = QtGui.QPainterPath(P(6.6, 4.6))
+    cuernos.cubicTo(P(7.1, 8.3), P(9.4, 10.3), P(12, 10.3))
+    cuernos.cubicTo(P(14.6, 10.3), P(16.9, 8.3), P(17.4, 4.6))
+    candado = QtGui.QPainterPath(P(8, 11))
+    candado.lineTo(8, 8)
+    candado.arcTo(QtCore.QRectF(8, 4, 8, 8), 180, -180)
+    candado.lineTo(16, 11)
+    escudo = QtGui.QPainterPath(P(12, 3.2))
+    escudo.lineTo(19, 5.8)
+    escudo.lineTo(19, 11)
+    escudo.cubicTo(P(19, 15.3), P(16.1, 18.8), P(12, 20.6))
+    escudo.cubicTo(P(7.9, 18.8), P(5, 15.3), P(5, 11))
+    escudo.lineTo(5, 5.8)
+    escudo.closeSubpath()
+    pin = QtGui.QPainterPath(P(12, 20.5))
+    pin.cubicTo(P(8, 16.4), P(6, 13.4), P(6, 10.4))
+    pin.cubicTo(P(6, 6.8), P(8.7, 4), P(12, 4))
+    pin.cubicTo(P(15.3, 4), P(18, 6.8), P(18, 10.4))
+    pin.cubicTo(P(18, 13.4), P(16, 16.4), P(12, 20.5))
+    esquinas = [("linea", [P(4, 8.5), P(4, 4), P(8.5, 4)]), ("linea", [P(15.5, 4), P(20, 4), P(20, 8.5)]),
+                ("linea", [P(20, 15.5), P(20, 20), P(15.5, 20)]), ("linea", [P(8.5, 20), P(4, 20), P(4, 15.5)])]
+    return {
+        "check": [("linea", [P(5, 12.5), P(9.5, 17), P(19, 7.5)])],
+        "candado": [("caja", (5, 11, 14, 9, 2)), ("camino", candado)],
+        "res": [("camino", cuernos), ("circulo", (12, 15.4, 4.2))],
+        "modelo": esquinas + [("punto", (12, 12, 2.2))],
+        "mas": [("circulo", (12, 12, 8.2)), ("linea", [P(12, 8.4), P(12, 15.6)]), ("linea", [P(8.4, 12), P(15.6, 12)])],
+        "menos": [("circulo", (12, 12, 8.2)), ("linea", [P(8.4, 12), P(15.6, 12)])],
+        "cuadre": [("linea", [P(4.5, 8.5), P(19.5, 8.5)]), ("linea", [P(16, 5), P(19.5, 8.5), P(16, 12)]),
+                   ("linea", [P(19.5, 15.5), P(4.5, 15.5)]), ("linea", [P(8, 12), P(4.5, 15.5), P(8, 19)])],
+        "lupa": [("circulo", (10.8, 10.8, 6.2)), ("linea", [P(15.4, 15.4), P(20, 20)])],
+        "mapa": [("camino", pin), ("circulo", (12, 10.4, 2.3))],
+        "escudo": [("camino", escudo), ("linea", [P(9, 11.8), P(11.3, 14.1), P(15.2, 9.8)])],
+        "corral": [("linea", [P(3.5, 9), P(20.5, 9)]), ("linea", [P(3.5, 15), P(20.5, 15)]), ("linea", [P(6.5, 5.5), P(6.5, 19)]),
+                   ("linea", [P(12, 5.5), P(12, 19)]), ("linea", [P(17.5, 5.5), P(17.5, 19)])],
+        "video": [("caja", (3.5, 6, 17, 12, 3)), ("linea", [P(10.3, 9.4), P(14.6, 12), P(10.3, 14.6), P(10.3, 9.4)])],
+        "tabla": [("caja", (4, 5, 16, 14, 2.5)), ("linea", [P(4, 10), P(20, 10)]), ("linea", [P(10, 10), P(10, 19)])],
+        "nube": [("linea", [P(12, 15.5), P(12, 6)]), ("linea", [P(8.3, 9.6), P(12, 6), P(15.7, 9.6)]),
+                 ("linea", [P(5, 15.5), P(5, 19), P(19, 19), P(19, 15.5)])],
+    }
+
+
 def icono(nombre, color, lado=16):
-    """Iconos de linea (check, candado) dibujados aqui para no depender de archivos."""
+    """Iconos de linea dibujados aqui para no depender de archivos (los nombres estan en _iconos)."""
     pm = QtGui.QPixmap(lado * 2, lado * 2)
     pm.fill(QtCore.Qt.GlobalColor.transparent)
     p = QtGui.QPainter(pm)
     p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
     p.scale(lado * 2 / 24.0, lado * 2 / 24.0)
-    pluma = QtGui.QPen(QtGui.QColor(color), 2.4 if nombre == "check" else 2.0)
+    pluma = QtGui.QPen(QtGui.QColor(color), 2.4 if nombre == "check" else (2.0 if lado <= 16 else 1.6))
     pluma.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
     pluma.setJoinStyle(QtCore.Qt.PenJoinStyle.RoundJoin)
     p.setPen(pluma)
     p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
-    if nombre == "check":
-        p.drawPolyline(QtGui.QPolygonF([QtCore.QPointF(5, 12.5), QtCore.QPointF(9.5, 17), QtCore.QPointF(19, 7.5)]))
-    elif nombre == "candado":
-        p.drawRoundedRect(QtCore.QRectF(5, 11, 14, 9), 2, 2)
-        arco = QtGui.QPainterPath(QtCore.QPointF(8, 11))
-        arco.lineTo(8, 8)
-        arco.arcTo(QtCore.QRectF(8, 4, 8, 8), 180, -180)
-        arco.lineTo(16, 11)
-        p.drawPath(arco)
+    for tipo, d in _iconos().get(nombre, ()):
+        if tipo == "linea":
+            p.drawPolyline(QtGui.QPolygonF(d))
+        elif tipo == "camino":
+            p.drawPath(d)
+        elif tipo == "circulo":
+            p.drawEllipse(QtCore.QPointF(d[0], d[1]), d[2], d[2])
+        elif tipo == "caja":
+            p.drawRoundedRect(QtCore.QRectF(d[0], d[1], d[2], d[3]), d[4], d[4])
+        elif tipo == "punto":
+            p.setBrush(QtGui.QColor(color))
+            p.drawEllipse(QtCore.QPointF(d[0], d[1]), d[2], d[2])
+            p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
     p.end()
     pm.setDevicePixelRatio(2.0)
     return pm
+
+
+def insignia(nombre, lado=48):
+    """Un icono de linea dentro de un circulo translucido: encabeza las tarjetas y los datos destacados."""
+    e = QtWidgets.QLabel()
+    e.setObjectName("insignia")
+    e.setFixedSize(lado, lado)
+    e.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+    e.setPixmap(icono(nombre, "#FFFFFF", round(lado * 0.46)))
+    e.setStyleSheet(f"background: rgba(182, 211, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.16); "
+                    f"border-radius: {lado // 2 - 1}px;")
+    return e
+
+
+# Como se pinta cada panel segun su nombre: (radio de las esquinas, acabado)
+PANELES = {"premio": (18, "destacado"), "anuncio": (18, "destacado"), "heroe": (14, "destacado"), "aviso": (12, "destacado"),
+           "caja_oscura": (12, "destacado"), "beneficios": (18, "suave"), "tarjeta": (16, "carta"), "caja": (12, "caja"),
+           "panel_marca": (0, "marca")}
+
+
+_termica = []
+
+
+def _foto_termica():
+    """La toma termica de fondo de la pantalla de entrada (icono/termica.jpg). None si el archivo falta."""
+    if not _termica:
+        ruta = os.path.join(AQUI, "icono", "termica.jpg")
+        img = QtGui.QImage(ruta) if os.path.exists(ruta) else QtGui.QImage()
+        _termica.append(None if img.isNull() else img)
+    return _termica[0]
+
+
+class Panel(QtWidgets.QFrame):
+    """Tarjeta pintada a mano, para darle profundidad: un degradado azul pizarra que se apaga hacia el negro, una luz
+    suave que entra por la esquina de arriba y un borde fino mas claro arriba que abajo, como un vidrio.
+    El panel de la marca (entrada y bloqueo) lleva de fondo una toma termica de ejemplo.
+    El acabado sale del nombre del objeto (ver PANELES); con otro nombre se comporta como un QFrame cualquiera."""
+
+    def paintEvent(self, ev):
+        radio, tipo = PANELES.get(self.objectName(), (0, None))
+        if tipo is None:
+            return super().paintEvent(ev)
+        C, P = QtGui.QColor, QtCore.QPointF
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        r = QtCore.QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        forma = QtGui.QPainterPath()
+        forma.addRoundedRect(r, radio, radio)
+        borde_arriba, borde_abajo = 46, 10
+        if tipo == "marca":                     # la pantalla de entrada: una toma termica al fondo, velada en azul
+            p.fillPath(forma, C("#05070B"))
+            foto = _foto_termica()
+            if foto is not None:
+                escala = max(r.width() / foto.width(), r.height() / foto.height())
+                w, h = foto.width() * escala, foto.height() * escala
+                p.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
+                p.setOpacity(0.5)
+                p.drawImage(QtCore.QRectF(r.center().x() - w / 2, r.center().y() - h / 2, w, h), foto)
+                p.setOpacity(1.0)
+            g = QtGui.QLinearGradient(r.topLeft(), r.bottomRight())
+            g.setColorAt(0.0, C(107, 155, 225, 96))
+            g.setColorAt(1.0, C(5, 7, 11, 150))
+            p.fillPath(forma, g)
+            velo = QtGui.QLinearGradient(r.topLeft(), r.bottomLeft())
+            velo.setColorAt(0.0, C(0, 0, 0, 70))
+            velo.setColorAt(0.45, C(0, 0, 0, 40))
+            velo.setColorAt(1.0, C(0, 0, 0, 170))
+            p.fillPath(forma, velo)
+            return
+        if tipo == "destacado":
+            p.fillPath(forma, C("#0A0D13"))
+            g = QtGui.QLinearGradient(r.topLeft(), r.bottomRight())
+            g.setColorAt(0.0, C(107, 155, 225, 132))
+            g.setColorAt(0.55, C(107, 155, 225, 46))
+            g.setColorAt(1.0, C(107, 155, 225, 10))
+            p.fillPath(forma, g)
+            luz = QtGui.QRadialGradient(P(r.left() + r.width() * 0.22, r.top()), max(r.width() * 0.62, 180.0))
+            luz.setColorAt(0.0, C(190, 215, 255, 64))
+            luz.setColorAt(1.0, C(190, 215, 255, 0))
+            p.fillPath(forma, luz)
+            borde_arriba, borde_abajo = 86, 14
+        elif tipo == "suave":
+            p.fillPath(forma, C("#0B0D11"))
+            g = QtGui.QLinearGradient(r.topLeft(), r.bottomRight())
+            g.setColorAt(0.0, C(107, 155, 225, 58))
+            g.setColorAt(1.0, C(107, 155, 225, 0))
+            p.fillPath(forma, g)
+        elif tipo == "carta":
+            g = QtGui.QLinearGradient(r.topLeft(), r.bottomLeft())
+            g.setColorAt(0.0, C("#1B1B1D"))
+            g.setColorAt(1.0, C("#101011"))
+            p.fillPath(forma, g)
+            luz = QtGui.QRadialGradient(P(r.center().x(), r.top()), max(r.width() * 0.55, 160.0))
+            luz.setColorAt(0.0, C(150, 185, 255, 20))
+            luz.setColorAt(1.0, C(150, 185, 255, 0))
+            p.fillPath(forma, luz)
+        else:                                   # caja: un vidrio apenas mas claro que lo que tiene debajo
+            p.fillPath(forma, C(255, 255, 255, 14))
+            borde_arriba, borde_abajo = 30, 8
+        b = QtGui.QLinearGradient(r.topLeft(), r.bottomLeft())
+        b.setColorAt(0.0, C(255, 255, 255, borde_arriba))
+        b.setColorAt(1.0, C(255, 255, 255, borde_abajo))
+        p.setPen(QtGui.QPen(QtGui.QBrush(b), 1.0))
+        p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        p.drawPath(forma)
+
+
+def brillo(w):
+    """Un resplandor azul bajo la tarjeta destacada de una pantalla. Solo para tarjetas que no estan dentro de otra con sombra."""
+    if SOMBRAS:
+        e = QtWidgets.QGraphicsDropShadowEffect(w)
+        e.setBlurRadius(56)
+        e.setOffset(0, 14)
+        e.setColor(QtGui.QColor(64, 112, 210, 64))
+        w.setGraphicsEffect(e)
+    return w
 
 
 def sombra(w):
@@ -298,7 +463,7 @@ class DialogoAcceso(QtWidgets.QDialog):
         raiz.setSpacing(0)
 
         # Mitad izquierda: la marca y lo que el servicio garantiza
-        panel = QtWidgets.QFrame()
+        panel = Panel()
         panel.setObjectName("panel_marca")
         panel.setFixedWidth(400)
         pl = QtWidgets.QVBoxLayout(panel)
@@ -586,7 +751,7 @@ class DialogoRespaldo(QtWidgets.QDialog):
         self.estado = QtWidgets.QLabel()
         self.estado.setObjectName("gris")
         self.estado.setWordWrap(True)
-        cab = QtWidgets.QFrame()
+        cab = Panel()
         cab.setObjectName("tarjeta")
         lc = QtWidgets.QHBoxLayout(cab)
         lc.setContentsMargins(22, 18, 22, 18)
@@ -599,7 +764,7 @@ class DialogoRespaldo(QtWidgets.QDialog):
         lc.addLayout(tx, 1)
         # para que sirve / que hacer
         def bloque(titulo, puntos):
-            caja = QtWidgets.QFrame()
+            caja = Panel()
             caja.setObjectName("caja")
             lb = QtWidgets.QVBoxLayout(caja)
             lb.setContentsMargins(18, 14, 18, 16)

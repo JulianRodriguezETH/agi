@@ -30,6 +30,7 @@ datos = [
     ("icono/agi.ico", "icono"),
     ("icono/agi_256.png", "icono"),
     ("icono/agi_512.png", "icono"),
+    ("icono/termica.jpg", "icono"),
 ]
 
 a = Analysis(

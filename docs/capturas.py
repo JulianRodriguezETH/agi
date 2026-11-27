@@ -74,6 +74,11 @@ base.respaldar(); v.refrescar_barra(); v.statusBar().clearMessage(); girar(300);
 pf = v.p_finca; sb = pf.verticalScrollBar(); sb.setValue(sb.maximum()); print("scroll max", sb.maximum())
 foto(v, "03_cuadre.png"); sb.setValue(0)
 
+# pantallas extra (ajustes, bloqueo): para revisar el tema en todas las interfaces
+for pest in ("Users", "Backup", "Ranch"):
+    v.ir("ajustes", pest); foto(v, f"x_ajustes_{pest.lower()}.png")
+v.bloquear(); foto(v, "x_bloqueo.png"); v.b_clave.setText("llanura-verde-27-sol"); v.desbloquear(); v.ir("fincas"); girar(100)
+
 # 07 anotar movimiento
 dm = G.DialogoMovimiento(v, "Example Ranch A"); dm.show(); girar(50)
 dm.tipo.setCurrentIndex(dm.tipo.findData("muerte")); dm.cantidad.setValue(1); dm.fecha.setDate(QtCore.QDate(2026, 11, 25))
@@ -120,5 +125,6 @@ shutil.copy2(os.path.join(c.carpeta, "mapa_conteo.jpg"), os.path.join(EJ, "mapa_
 shutil.copy2(os.path.join(c.carpeta, "mapa_conteo.jpg"), os.path.join(SAL, "10_mapa.jpg"))
 print(sorted(os.listdir(EJ)))
 v2.close(); b2.cerrar()
+acc2 = P.DialogoAcceso(d); acc2.resize(1280, 800); acc2.show(); girar(50); acc2.usuario.setText("rancher"); foto(acc2, "x_entrar.png"); acc2.close()
 shutil.rmtree(raiz, ignore_errors=True); shutil.rmtree(usb, ignore_errors=True)
 print("LISTO")

@@ -166,7 +166,7 @@ def simular(guardar=""):
         for nombre, temp, manchas in por_foto:
             if any(m.get("estado") == "aislada" for m in manchas) or nombre.endswith("_0024_T.JPG"):
                 cv2.imwrite(os.path.join(guardar, nombre.replace(".JPG", "_termica.jpg")),
-                            T.falso_color(temp, manchas, f"{nombre} (simulada): {len(manchas)} manchas"))
+                            T.falso_color(temp, manchas, f"{nombre}   simulated   {len(manchas)} hot spots"))
 
 
 def main():

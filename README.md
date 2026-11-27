@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/readme/hero.png" alt="AGI — Cattle counting from drone video. Counts every animal once, keeps a person in the loop to review each count, and issues digitally signed PDF reports from an encrypted local database." width="880">
+  <img src="docs/readme/hero.png" alt="AGI — Cattle counting from drone video, over a simulated thermal frame. Counts every animal once, keeps a person in the loop to review each count, and issues digitally signed PDF reports from an encrypted local database." width="880">
 </p>
 
 <p align="center">
@@ -95,6 +95,14 @@ another paddock: 96 animals, AGI counts 96.
   <tr>
     <td valign="top"><b>Signed PDF report</b><br>What the owner keeps: the count, the reconciliation and a verification code.</td>
     <td valign="top"><b>Count map</b><br>Every animal once, with its number, where it was seen across the flight.</td>
+  </tr>
+  <tr>
+    <td><a href="ejemplos_termica/SIM_0024_T_termica.jpg"><img src="ejemplos_termica/SIM_0024_T_termica.jpg" alt="Thermal frame with hot spots marked"></a></td>
+    <td><a href="ejemplos_termica/SIM_0081_T_termica.jpg"><img src="ejemplos_termica/SIM_0081_T_termica.jpg" alt="Thermal frame with an isolated animal marked in red"></a></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Thermal, experimental</b><br><code>termica.py</code> marks hot spots in thermal photos with their temperature. These frames are simulated.</td>
+    <td valign="top"><b>Isolated animals</b><br>Hot spots far from the herd are marked in red and geolocated, so someone can go and look.</td>
   </tr>
 </table>
 

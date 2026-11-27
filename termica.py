@@ -444,24 +444,67 @@ def dentro(lat, lon, pol):
 
 # --------------------------------------------------------------------- salidas
 
+# Paleta termica propia: del negro al blanco pasando por indigo, violeta, magenta y naranja (posicion, color BGR)
+_PALETA = ((0.00, (10, 6, 5)), (0.16, (58, 16, 18)), (0.36, (122, 29, 74)), (0.56, (122, 54, 181)),
+           (0.74, (58, 112, 240)), (0.89, (74, 200, 255)), (1.00, (255, 255, 255)))
+
+
+def _lut_termica():
+    xs = np.array([p for p, _ in _PALETA]) * 255.0
+    lut = np.zeros((256, 1, 3), np.uint8)
+    for c in range(3):
+        lut[:, 0, c] = np.interp(np.arange(256), xs, [col[c] for _, col in _PALETA])
+    return lut
+
+
 def falso_color(temp, manchas, titulo):
-    lo, hi = np.percentile(temp, 1), np.percentile(temp, 99.8)
-    gris = np.uint8(np.clip((temp - lo) / max(1e-6, hi - lo), 0, 1) * 255)
-    img = cv2.applyColorMap(gris, cv2.COLORMAP_INFERNO)
+    """La foto termica lista para mirar: el terreno queda oscuro y lo caliente resalta con un halo; cada mancha lleva
+    cuatro esquinas (blancas en el rebano, rojas las aisladas) y su numero con la temperatura; a la derecha, la escala."""
     z = 2
-    img = cv2.resize(img, None, fx=z, fy=z, interpolation=cv2.INTER_NEAREST)
+    lo, hi = float(np.percentile(temp, 1)), float(np.percentile(temp, 99.9))
+    hi = max(hi, lo + 4.0)
+    suave = cv2.GaussianBlur(temp.astype(np.float32), (0, 0), 1.1)                 # solo para la vista: quita el grano del sensor
+    x = np.clip((suave - lo) / (hi - lo), 0, 1) ** 1.3                             # la curva hunde el terreno y deja arriba lo caliente
+    x = cv2.resize(x, None, fx=z, fy=z, interpolation=cv2.INTER_CUBIC)
+    lut = _lut_termica()
+    img = cv2.LUT(cv2.merge([np.uint8(np.clip(x, 0, 1) * 255)] * 3), lut).astype(np.float32)
+    halo = cv2.GaussianBlur(img * (x[..., None] > 0.55), (0, 0), 7)                # resplandor alrededor de lo caliente
+    img = np.clip(img + 0.55 * halo, 0, 255)
+    alto, ancho = img.shape[:2]
+    yy, xx = np.mgrid[0:alto, 0:ancho].astype(np.float32)
+    vin = 1.0 - 0.42 * np.clip(np.hypot((xx - ancho / 2) / (ancho / 2), (yy - alto / 2) / (alto / 2)) - 0.55, 0, 1)
+    img = np.uint8(img * vin[..., None])
+    letra = cv2.FONT_HERSHEY_SIMPLEX
+
+    def rotulo(texto, x0, y0, color=(255, 255, 255), escala=0.42):
+        (tw, th), _ = cv2.getTextSize(texto, letra, escala, 1)
+        x0 = int(min(max(4, x0), ancho - tw - 8))
+        y0 = int(max(th + 8, y0))
+        fondo = img[y0 - th - 5:y0 + 4, x0 - 4:x0 + tw + 4]
+        fondo[:] = np.uint8(fondo * 0.35)                                          # placa oscura translucida bajo el texto
+        cv2.putText(img, texto, (x0, y0), letra, escala, color, 1, cv2.LINE_AA)
+
     for n, m in enumerate(manchas, 1):
         x1, y1, x2, y2 = [v * z for v in m["caja"]]
-        color = (0, 0, 255) if m.get("estado") == "aislada" else (0, 255, 0)
-        cv2.rectangle(img, (x1 - 3, y1 - 3), (x2 + 3, y2 + 3), color, 2)
-        txt = f"{n}: {m['t_max']:.0f}C"
+        x1, y1, x2, y2 = x1 - 6, y1 - 6, x2 + 6, y2 + 6
+        color = (114, 123, 255) if m.get("estado") == "aislada" else (255, 255, 255)
+        brazo = int(max(5, min(12, (x2 - x1) / 3, (y2 - y1) / 3)))
+        for cx, cy, sx, sy in ((x1, y1, 1, 1), (x2, y1, -1, 1), (x2, y2, -1, -1), (x1, y2, 1, -1)):
+            cv2.line(img, (cx, cy), (cx + sx * brazo, cy), color, 1, cv2.LINE_AA)
+            cv2.line(img, (cx, cy), (cx, cy + sy * brazo), color, 1, cv2.LINE_AA)
+        txt = f"{n:02d}  {m['t_max']:.0f} C"
         if m["animales"] > 1:
-            txt += f" x{m['animales']}"
-        cv2.putText(img, txt, (x1 - 3, max(12, y1 - 7)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1,
-                    cv2.LINE_AA)
-    franja = np.zeros((30, img.shape[1], 3), dtype=np.uint8)
-    cv2.putText(franja, titulo, (6, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
-    return np.vstack([franja, img])
+            txt += f"  x{m['animales']}"
+        rotulo(txt, x1, y1 - 7, color)
+    # titulo arriba y escala de temperatura a la derecha
+    img[:34] = np.uint8(img[:34] * np.linspace(0.35, 1.0, 34)[:, None, None])
+    cv2.putText(img, titulo, (12, 22), letra, 0.5, (235, 235, 235), 1, cv2.LINE_AA)
+    bx, by, bh = ancho - 22, 54, min(190, alto - 110)
+    img[by:by + bh, bx:bx + 6] = cv2.resize(lut[::-1], (6, bh), interpolation=cv2.INTER_LINEAR)
+    cv2.rectangle(img, (bx - 1, by - 1), (bx + 6, by + bh), (150, 150, 150), 1, cv2.LINE_AA)
+    cv2.putText(img, f"{hi:.0f} C", (bx - 34, by + 4), letra, 0.4, (235, 235, 235), 1, cv2.LINE_AA)
+    cv2.putText(img, f"{lo:.0f} C", (bx - 34, by + bh), letra, 0.4, (235, 235, 235), 1, cv2.LINE_AA)
+    return img
 
 
 def dibujar_mapa(puntos, ruta, lado=900):
