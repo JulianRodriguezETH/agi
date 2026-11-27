@@ -20,8 +20,9 @@ body {{ width: 880px; font-family: Inter, "Segoe UI", sans-serif; color: #fff; -
 .panel {{ width: 880px; background: #000; border-radius: 20px; overflow: hidden; }}
 h1, h2, h3, .num {{ font-family: Manrope, sans-serif; font-weight: 600; }}
 .sub {{ color: rgba(255,255,255,.65); }}
-.grad {{ background: linear-gradient(153deg, rgba(107,155,225,.5) 0%, rgba(107,155,225,.06) 100%), #0b0d11; border-radius: 16px; }}
-.soft {{ background: linear-gradient(153deg, rgba(107,155,225,.22) 0%, rgba(107,155,225,0) 100%), #0b0d11; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; }}
+.grad {{ background: linear-gradient(153deg, #f6f4f0 0%, #d9d3c9 100%); border-radius: 16px; color: #141414; }}
+.grad .sub {{ color: rgba(20,20,20,.62); }}
+.soft {{ background: linear-gradient(153deg, rgba(230,223,211,.16) 0%, rgba(230,223,211,0) 100%), #0d0c0b; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; }}
 .pill {{ display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 20px; border-radius: 999px; background: #1a1a1a;
         border: 1px solid #333; font-size: 14px; font-weight: 500; color: #fff; white-space: nowrap; }}
 .pill.blanca {{ background: #fff; border-color: #fff; color: #0a0a0a; font-weight: 600; }}
@@ -46,7 +47,7 @@ pasos = [("Video in", "A count point every time the drone advances half a frame"
 nodos = "".join(f"""<div style="flex:1;padding:0 8px;text-align:center">
    <div style="display:flex;align-items:center;height:20px;margin:0 -8px 18px">
      <div style="flex:1;height:1px;background:{'transparent' if i == 0 else 'rgba(255,255,255,.28)'}"></div>
-     <div style="width:{16 if i == 0 else 10}px;height:{16 if i == 0 else 10}px;border-radius:50%;background:{'#9db9ea' if i == 0 else 'rgba(255,255,255,.75)'};{'box-shadow:0 0 0 5px rgba(107,155,225,.3);' if i == 0 else ''}"></div>
+     <div style="width:{16 if i == 0 else 10}px;height:{16 if i == 0 else 10}px;border-radius:50%;background:{'#e6dfd3' if i == 0 else 'rgba(255,255,255,.75)'};{'box-shadow:0 0 0 5px rgba(230,223,211,.25);' if i == 0 else ''}"></div>
      <div style="flex:1;height:1px;background:{'transparent' if i == len(pasos) - 1 else 'rgba(255,255,255,.28)'}"></div></div>
    <div class="sub" style="font-size:12px">Step {i + 1}</div>
    <h3 style="font-size:16px;line-height:1.3;margin:6px 0 8px">{t}</h3>
@@ -69,7 +70,7 @@ pilares = [("cuadre", "Inventory, not just counts", "Each count is compared with
            ("candado", "Encrypted on the computer", "SQLCipher database (AES-256) with a key slot per user, a recovery code and encrypted backups."),
            ("firma", "Tamper-evident reports", "Ed25519 signature over the totals, the image hashes, the PDF hash and the audit-log hash.")]
 PIL = f"""<div class="panel" id="x" style="padding:26px 26px 26px"><div class="soft" style="padding:34px 14px 36px;display:flex">""" + "".join(f"""<div style="flex:1;padding:0 18px;text-align:center">
-    <div style="width:52px;height:52px;border-radius:50%;background:rgba(182,211,255,.1);display:inline-flex;align-items:center;justify-content:center">
+    <div style="width:52px;height:52px;border-radius:50%;background:rgba(230,223,211,.1);display:inline-flex;align-items:center;justify-content:center">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{ICO[i]}</svg></div>
     <h3 style="font-size:17px;margin:16px 0 10px">{t}</h3><div class="sub" style="font-size:13.5px;line-height:1.5">{s}</div></div>""" for i, t, s in pilares) + "</div></div>"
 
