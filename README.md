@@ -18,7 +18,7 @@
 </p>
 
 > [!NOTE]
-> **Status: open portfolio project.** AGI was designed for ranches in Arauca, Colombia, but drone
+> **Status: open portfolio project.** AGI - Agro Ganadero IA was designed for ranches in Arauca, Colombia, but drone
 > flights aren't allowed in that area, so it has **never been tested in the field**. Everything
 > below was tested on real aerial photos (the WAID dataset) and on simulated flights built from
 > them.
