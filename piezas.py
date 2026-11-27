@@ -130,7 +130,7 @@ def _imagen_sello(lado):
 
 
 def pintar_marca(p, x, y, lado):
-    """El logo de AGI: los cuernos de una res sobre un aro, blanco sobre negro. Si falta la imagen, se dibuja aqui mismo."""
+    """El logo de AGI: una res que tambien es un dron (cuernos con helices sobre el lente). Si falta la imagen, se dibuja aqui mismo."""
     img = _imagen_sello(int(round(lado * 2)))                 # al doble, para pantallas de alta densidad
     if img is None:
         return _pintar_marca_dibujo(p, x, y, lado)
@@ -139,22 +139,30 @@ def pintar_marca(p, x, y, lado):
 
 
 def _pintar_marca_dibujo(p, x, y, lado):
-    """Respaldo, con el mismo trazo de icono/agi_marca.svg: cuadro negro, un aro y los cuernos encima."""
+    """Respaldo, con el mismo trazo de icono/agi_marca.svg: cuadro negro, los cuernos con una helice en cada punta
+    y el aro con su punto (el lente del dron)."""
     p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
     u = lado / 512.0
     p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 40), max(1.0, 4 * u)))
     p.setBrush(QtGui.QColor("#000000"))
     p.drawRoundedRect(QtCore.QRectF(x + 2 * u, y + 2 * u, lado - 4 * u, lado - 4 * u), 112 * u, 112 * u)
+    P = lambda a, b: QtCore.QPointF(x + a * u, y + b * u)
     pluma = QtGui.QPen(QtGui.QColor("#FFFFFF"), 34 * u)
     pluma.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
     p.setPen(pluma)
     p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
-    P = lambda a, b: QtCore.QPointF(x + a * u, y + b * u)
-    p.drawEllipse(P(256, 326), 78 * u, 78 * u)
-    cuernos = QtGui.QPainterPath(P(136, 126))
-    cuernos.cubicTo(P(146, 204), P(196, 248), P(256, 248))
-    cuernos.cubicTo(P(316, 248), P(366, 204), P(376, 126))
+    p.drawEllipse(P(256, 328), 78 * u, 78 * u)
+    cuernos = QtGui.QPainterPath(P(136, 136))
+    cuernos.cubicTo(P(146, 208), P(196, 250), P(256, 250))
+    cuernos.cubicTo(P(316, 250), P(366, 208), P(376, 136))
     p.drawPath(cuernos)
+    pluma.setWidthF(24 * u)
+    p.setPen(pluma)
+    p.drawLine(P(94, 124), P(178, 124))
+    p.drawLine(P(334, 124), P(418, 124))
+    p.setPen(QtCore.Qt.PenStyle.NoPen)
+    p.setBrush(QtGui.QColor("#FFFFFF"))
+    p.drawEllipse(P(256, 328), 23 * u, 23 * u)
 
 
 def pixmap_marca(lado=64):
@@ -196,9 +204,9 @@ class Marca(QtWidgets.QWidget):
 def _iconos():
     """Los trazos de cada icono sobre una cuadricula de 24: una lista de (tipo, datos) que icono() dibuja."""
     P = QtCore.QPointF
-    cuernos = QtGui.QPainterPath(P(6.6, 4.6))
-    cuernos.cubicTo(P(7.1, 8.3), P(9.4, 10.3), P(12, 10.3))
-    cuernos.cubicTo(P(14.6, 10.3), P(16.9, 8.3), P(17.4, 4.6))
+    cuernos = QtGui.QPainterPath(P(6.6, 4.8))
+    cuernos.cubicTo(P(7.1, 8.5), P(9.4, 10.6), P(12, 10.6))
+    cuernos.cubicTo(P(14.6, 10.6), P(16.9, 8.5), P(17.4, 4.8))
     candado = QtGui.QPainterPath(P(8, 11))
     candado.lineTo(8, 8)
     candado.arcTo(QtCore.QRectF(8, 4, 8, 8), 180, -180)
@@ -220,7 +228,8 @@ def _iconos():
     return {
         "check": [("linea", [P(5, 12.5), P(9.5, 17), P(19, 7.5)])],
         "candado": [("caja", (5, 11, 14, 9, 2)), ("camino", candado)],
-        "res": [("camino", cuernos), ("circulo", (12, 15.4, 4.2))],
+        "res": [("camino", cuernos), ("circulo", (12, 15.2, 4.4)), ("linea", [P(4.4, 4.5), P(8.8, 4.5)]),
+                ("linea", [P(15.2, 4.5), P(19.6, 4.5)]), ("punto", (12, 15.2, 1.3))],
         "modelo": esquinas + [("punto", (12, 12, 2.2))],
         "mas": [("circulo", (12, 12, 8.2)), ("linea", [P(12, 8.4), P(12, 15.6)]), ("linea", [P(8.4, 12), P(15.6, 12)])],
         "menos": [("circulo", (12, 12, 8.2)), ("linea", [P(8.4, 12), P(15.6, 12)])],

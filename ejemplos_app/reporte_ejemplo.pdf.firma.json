@@ -5,7 +5,7 @@
   "finca": "Example Ranch A",
   "propietario": "Example Owner",
   "fecha_vuelo": "2026-11-22",
-  "emitido": "2026-11-27T13:43:30-05:00",
+  "emitido": "2026-11-27T13:52:38-05:00",
   "usuario": "rancher",
   "total": 28,
   "ia": 28,
@@ -13,7 +13,7 @@
   "quitadas": 0,
   "umbral": 0.3,
   "escala": 1.0,
-  "bitacora_previa": "05620360963aba7563b55a4e6bb847b24d78dbe591c5d44ccbf1d1a898dbf333",
+  "bitacora_previa": "0b96ed753c9bca0ff837e489b9aae710eea0dc16d8d35ba683f3480e90bca078",
   "fotos": [
    {
     "nombre": "0000_v1_00m00s_DJI_20261122_0001.jpg",
@@ -65,7 +65,7 @@
   },
   "mapa_sha256": "a1f8aa211e55db19c6f29a59c8f3e3e63f8b2967bfcdcd11904c01d3f9bdacdb"
  },
- "pdf_sha256": "c863aec3370a499e8766bbd7b89d15b0bef5bb4bb72af2e3f43098ebe83e238f",
- "llave_publica": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEASIwuU/yHjGQA9Jz3xGCMsBFUpmOaV7Vsxi7TnMzXJbo=\n-----END PUBLIC KEY-----\n",
- "firma": "T6QwzLIqzdkm3tYyrCr0GalXDbfAttsPxjo7+FbDS9EWnCMMOhLCJlIP/qZCFNKwSbZnOFfI+Uu294mbwBurBQ=="
+ "pdf_sha256": "42206ddb9551fae008f77c51b9300185a4ab9bf751f29e442dcaef89e79166eb",
+ "llave_publica": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAHSSE0RS1cmglbYZcjLS5xj16eIuxUHcz63BnfNiYU9U=\n-----END PUBLIC KEY-----\n",
+ "firma": "IAyv8uKm+LPcRqH5/DWovae2cVXHKlFFiAA5sisxBAOfk3SGDXKKaxFWPBNmzY85ShlCM2A5Y/1bD96RdtbhCw=="
 }

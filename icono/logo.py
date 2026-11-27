@@ -33,7 +33,7 @@ def icono(lado):
 def trazo(lado, color):
     """Solo el trazo, sin el cuadro, en el color pedido y sobre fondo transparente."""
     solo = SVG[:SVG.index("<rect")] + SVG[SVG.index('<g id="trazo"'):]
-    solo = solo.replace('stroke="#FFFFFF"', f'stroke="{color}"')
+    solo = solo.replace('stroke="#FFFFFF"', f'stroke="{color}"').replace('fill="#FFFFFF"', f'fill="{color}"')
     img = QtGui.QImage(lado, lado, QtGui.QImage.Format.Format_ARGB32)
     img.fill(QtCore.Qt.GlobalColor.transparent)
     p = QtGui.QPainter(img)

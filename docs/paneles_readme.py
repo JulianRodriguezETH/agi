@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 R = os.path.abspath(sys.argv[1]); SAL = os.path.join(R, "docs", "readme"); os.makedirs(SAL, exist_ok=True)
 b64 = lambda ruta: base64.b64encode(open(ruta, "rb").read()).decode()
 F6, F7 = b64(f"{R}/fuentes/Manrope-SemiBold.ttf"), b64(f"{R}/fuentes/Manrope-Bold.ttf")
-LOGO = b64(f"{R}/icono/agi_logo_oscuro.png"); TERM = b64(f"{R}/ejemplos_termica/SIM_0024_T_termica.jpg")
+LOGO = b64(f"{R}/icono/agi_logo_oscuro.png"); TERM = b64(f"{R}/ejemplos_termica/SIM_OBLIQUE_T_termica.jpg")
 CSS = f"""
 @font-face {{ font-family: Manrope; font-weight: 600; src: url(data:font/ttf;base64,{F6}); }}
 @font-face {{ font-family: Manrope; font-weight: 700; src: url(data:font/ttf;base64,{F7}); }}
@@ -33,7 +33,7 @@ HERO = f"""<div class="panel" id="x" style="padding:0 0 46px">
     <img src="data:image/png;base64,{LOGO}" style="height:52px;margin-left:-14px">
     <span class="sub" style="font-size:13px">Open portfolio project · MIT</span></div>
   <div style="position:relative;height:400px;overflow:hidden">
-    <img src="data:image/jpeg;base64,{TERM}" style="position:absolute;left:-40px;top:-70px;width:1000px">
+    <img src="data:image/jpeg;base64,{TERM}" style="position:absolute;left:0;top:-178px;width:880px">
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,#000 96%),linear-gradient(90deg,#000 0%,rgba(0,0,0,0) 12%,rgba(0,0,0,0) 88%,#000 100%)"></div>
     <span style="position:absolute;right:26px;top:18px;font-size:11.5px;color:rgba(255,255,255,.6);background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:5px 12px">Simulated thermal frame · experimental module</span></div>
   <h1 style="font-size:44px;line-height:1.14;text-align:center;letter-spacing:-.5px;margin-top:-46px;position:relative">Cattle counting<br>from drone video</h1>

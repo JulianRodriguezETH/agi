@@ -463,7 +463,7 @@ def falso_color(temp, manchas, titulo):
     z = 2
     lo, hi = float(np.percentile(temp, 1)), float(np.percentile(temp, 99.9))
     hi = max(hi, lo + 4.0)
-    suave = cv2.GaussianBlur(temp.astype(np.float32), (0, 0), 1.1)                 # solo para la vista: quita el grano del sensor
+    suave = cv2.bilateralFilter(temp.astype(np.float32), 5, 1.2, 1.6)              # solo para la vista: quita el grano sin borrar siluetas
     x = np.clip((suave - lo) / (hi - lo), 0, 1) ** 1.3                             # la curva hunde el terreno y deja arriba lo caliente
     x = cv2.resize(x, None, fx=z, fy=z, interpolation=cv2.INTER_CUBIC)
     lut = _lut_termica()
