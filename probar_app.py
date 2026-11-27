@@ -15,7 +15,7 @@ FOTOS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(AQUI, "ejemplos")
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtTest import QTest
 import agi as G, piezas as P, datos, seguridad
-qa = QtWidgets.QApplication([]); qa.setStyleSheet(G.ESTILO)
+qa = QtWidgets.QApplication([]); G.aplicar_tema(qa)
 mens = []
 for n in ("information", "warning", "critical"):
     setattr(QtWidgets.QMessageBox, n, staticmethod(lambda *a, **k: mens.append(a[2]) or QtWidgets.QMessageBox.StandardButton.Ok))

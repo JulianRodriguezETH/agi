@@ -128,7 +128,7 @@ def ordenar(cajas):
 
 
 def dibujar(img, cajas, titulo, colores=None, etiquetas=None, punteadas=()):
-    """colores: lista opcional con un color BGR por caja (por defecto amarillo). etiquetas: el numero de cada
+    """colores: lista opcional con un color BGR por caja (por defecto azul). etiquetas: el numero de cada
     caja (por defecto 1, 2, 3...). punteadas: cajas de reses ya contadas antes, en linea blanca y sin numero."""
     out = img.copy()
     alto, ancho = out.shape[:2]
@@ -143,13 +143,13 @@ def dibujar(img, cajas, titulo, colores=None, etiquetas=None, punteadas=()):
                 q = (a[0] + (b[0] - a[0]) * min(k + 4, largo) // max(largo, 1), a[1] + (b[1] - a[1]) * min(k + 4, largo) // max(largo, 1))
                 cv2.line(out, p, q, (255, 255, 255), g, cv2.LINE_AA)
     for n, c in enumerate(cajas, 1):
-        amarillo = colores[n - 1] if colores else (0, 230, 255)
+        color = colores[n - 1] if colores else (255, 165, 90)
         x1, y1, x2, y2 = [int(round(v)) for v in c]
-        cv2.rectangle(out, (x1, y1), (x2, y2), amarillo, g)
+        cv2.rectangle(out, (x1, y1), (x2, y2), color, g)
         txt = f"#{etiquetas[n - 1] if etiquetas else n}"
         (tw, th), _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_SIMPLEX, fe, g)
         ty = y1 - 3 if y1 - th - 4 > 0 else y2 + th + 3
-        cv2.rectangle(out, (x1, ty - th - 2), (x1 + tw + 2, ty + 2), amarillo, -1)
+        cv2.rectangle(out, (x1, ty - th - 2), (x1 + tw + 2, ty + 2), color, -1)
         cv2.putText(out, txt, (x1 + 1, ty), cv2.FONT_HERSHEY_SIMPLEX, fe, (0, 0, 0), g, cv2.LINE_AA)
     if not titulo:
         return out

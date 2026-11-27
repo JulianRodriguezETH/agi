@@ -392,7 +392,7 @@ def mapa(rutas, union, dets_por_punto, umbral, ancho_max=1400):
                     continue
                 x1d, y1d, x2d, y2d = d["caja"]
                 cx, cy = _aplicar(A0 @ G[i], [[(x1d + x2d) / 2, (y1d + y2d) / 2]])[0]
-                color = (255, 200, 0) if d["origen"] == "manual" else (10, 214, 255)
+                color = (141, 211, 95) if d["origen"] == "manual" else (255, 165, 90)      # BGR: verde lo manual, azul lo del programa
                 cv2.circle(lienzo, (int(cx), int(cy)), r, color, -1, cv2.LINE_AA)
                 cv2.circle(lienzo, (int(cx), int(cy)), r, (20, 19, 20), 1, cv2.LINE_AA)
                 texto = str(d["id"])

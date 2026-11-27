@@ -25,12 +25,20 @@ MODELO = os.path.join(AQUI, "modelos", "reses_s.onnx")
 CONF_MIN = 0.20          # se detecta con umbral bajo y el control deslizante filtra
 CONF_DEFECTO = 0.30
 ARCHIVO_REVISION = "conteo_revision.json"
-AMARILLO, CIAN = (255, 230, 0), (0, 200, 255)   # RGB: programa y manual
+CAJA_IA, CAJA_MANUAL = (90, 165, 255), (95, 211, 141)   # RGB de los recuadros: azul lo que conto el programa, verde lo agregado a mano
 CAIDA_ALERTA = 5.0       # % de caida entre dos conteos que se resalta en el historial
 
-# Colores de la marca: negro tinta, amarillo como acento, grises calidos
-TINTA, GRIS, FONDO, LINEA, AMARILLO_MARCA = "#14130F", "#5A584F", "#F4F3EF", "#E8E6DF", "#FFD60A"
-CLARO = "#D9D6CB"        # texto sobre fondo tinta
+# Tema oscuro y sobrio: fondo negro, tarjetas gris carbon, texto blanco. El acento es el propio blanco y,
+# para lo destacado, un azul pizarra; no hay color de marca aparte.
+TINTA, GRIS, FONDO, LINEA, ACENTO = "#0A0A0A", "#A6A6A6", "#000000", "#262626", "#FFFFFF"
+CLARO = "#D9D9D9"        # texto secundario sobre las tarjetas destacadas
+TEXTO, SUPERFICIE, RELIEVE, BORDE = "#FFFFFF", "#141414", "#1F1F1F", "#333333"   # TINTA queda para texto sobre blanco
+VERDE, ROJO, AZUL = "#5FD38D", "#FF7B72", "#9DBDF2"                               # estados, legibles sobre negro
+FONDO_VERDE, FONDO_ROJO = "#12301F", "#3A1614"
+SELECCION = "#1E2A40"    # fila o texto seleccionado
+# tarjeta destacada: degradado azul pizarra que se apaga hacia el negro
+DEGRADADO = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #34486A, stop:1 #10141B)"
+DEGRADADO_SUAVE = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1D2636, stop:1 #0B0D11)"      # el mismo, mas apagado
 SOMBRAS = os.environ.get("AGI_SIN_SOMBRAS") != "1"
 _fuentes_listas = False
 
@@ -102,14 +110,13 @@ def cargar_fuentes():
     _fuentes_listas = True
 
 
-AZUL_MARCA, ROJO_MARCA = "#0B2E6B", "#CE1126"
 
 
 _sello, _sello_tam = None, {}
 
 
 def _imagen_sello(lado):
-    """El sello de AGI (icono/agi_512.png) reducido con cuidado al tamano pedido. None si el archivo falta."""
+    """El logo de AGI (icono/agi_512.png) reducido con cuidado al tamano pedido. None si el archivo falta."""
     global _sello
     if _sello is None:
         ruta = os.path.join(AQUI, "icono", "agi_512.png")
@@ -123,7 +130,7 @@ def _imagen_sello(lado):
 
 
 def pintar_marca(p, x, y, lado):
-    """El logo de AGI: el sello con la cabeza de toro. Si falta la imagen, un dibujo sencillo."""
+    """El logo de AGI: los cuernos de una res sobre un aro, blanco sobre negro. Si falta la imagen, se dibuja aqui mismo."""
     img = _imagen_sello(int(round(lado * 2)))                 # al doble, para pantallas de alta densidad
     if img is None:
         return _pintar_marca_dibujo(p, x, y, lado)
@@ -132,26 +139,22 @@ def pintar_marca(p, x, y, lado):
 
 
 def _pintar_marca_dibujo(p, x, y, lado):
-    """Respaldo: cuadro amarillo, las cuatro esquinas azules del recuadro que AGI pone
-    sobre cada res y un punto rojo en el centro: la res contada."""
+    """Respaldo, con el mismo trazo de icono/agi_marca.svg: cuadro negro, un aro y los cuernos encima."""
     p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-    p.setPen(QtCore.Qt.PenStyle.NoPen)
-    p.setBrush(QtGui.QColor(AMARILLO_MARCA))
-    p.drawRoundedRect(QtCore.QRectF(x, y, lado, lado), lado * 0.25, lado * 0.25)
-    u = lado / 32.0
-    pluma = QtGui.QPen(QtGui.QColor(AZUL_MARCA), 3.0 * u)
+    u = lado / 512.0
+    p.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 40), max(1.0, 4 * u)))
+    p.setBrush(QtGui.QColor("#000000"))
+    p.drawRoundedRect(QtCore.QRectF(x + 2 * u, y + 2 * u, lado - 4 * u, lado - 4 * u), 112 * u, 112 * u)
+    pluma = QtGui.QPen(QtGui.QColor("#FFFFFF"), 34 * u)
     pluma.setCapStyle(QtCore.Qt.PenCapStyle.RoundCap)
-    pluma.setJoinStyle(QtCore.Qt.PenJoinStyle.RoundJoin)
     p.setPen(pluma)
     p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
-    cx, cy = x + lado / 2, y + lado / 2
-    a, b = 8.2 * u, 3.0 * u                    # distancia del centro a la esquina y hasta donde llega cada brazo
-    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
-        p.drawPolyline(QtGui.QPolygonF([QtCore.QPointF(cx + sx * a, cy + sy * b), QtCore.QPointF(cx + sx * a, cy + sy * a),
-                                        QtCore.QPointF(cx + sx * b, cy + sy * a)]))
-    p.setPen(QtCore.Qt.PenStyle.NoPen)
-    p.setBrush(QtGui.QColor(ROJO_MARCA))
-    p.drawEllipse(QtCore.QPointF(cx, cy), 3.3 * u, 3.3 * u)
+    P = lambda a, b: QtCore.QPointF(x + a * u, y + b * u)
+    p.drawEllipse(P(256, 326), 78 * u, 78 * u)
+    cuernos = QtGui.QPainterPath(P(136, 126))
+    cuernos.cubicTo(P(146, 204), P(196, 248), P(256, 248))
+    cuernos.cubicTo(P(316, 248), P(366, 204), P(376, 126))
+    p.drawPath(cuernos)
 
 
 def pixmap_marca(lado=64):
@@ -222,7 +225,7 @@ def sombra(w):
         e = QtWidgets.QGraphicsDropShadowEffect(w)
         e.setBlurRadius(20)          # corta: no debe llegar al widget de abajo, que la taparia
         e.setOffset(0, 4)
-        e.setColor(QtGui.QColor(20, 19, 15, 22))
+        e.setColor(QtGui.QColor(0, 0, 0, 120))
         w.setGraphicsEffect(e)
     return w
 
@@ -311,7 +314,7 @@ class DialogoAcceso(QtWidgets.QDialog):
             linea = QtWidgets.QHBoxLayout()
             linea.setSpacing(12)
             marca = QtWidgets.QLabel()
-            marca.setPixmap(icono("check", AMARILLO_MARCA, 18))
+            marca.setPixmap(icono("check", ACENTO, 18))
             marca.setFixedSize(18, 18)
             linea.addWidget(marca)
             linea.addWidget(texto(garantia), 1)
@@ -521,7 +524,7 @@ class DialogoUsuarios(QtWidgets.QDialog):
             self.estado.setStyleSheet("")
             self.estado.setText(mensaje)
         except Exception as err:  # noqa: BLE001 - se muestra al usuario
-            self.estado.setStyleSheet("color: #A32D0B;")
+            self.estado.setStyleSheet(f"color: {ROJO};")
             self.estado.setText(str(err))
         self.cargar(elegir or self.elegido())
 
@@ -647,7 +650,7 @@ class DialogoRespaldo(QtWidgets.QDialog):
         self.lista.setWordWrap(True)
         self.aviso = QtWidgets.QLabel()
         self.aviso.setWordWrap(True)
-        self.aviso.setStyleSheet("color: #A32D0B;")
+        self.aviso.setStyleSheet(f"color: {ROJO};")
         fila = QtWidgets.QHBoxLayout()
         fila.setSpacing(10)
         fila.addWidget(self.carpeta, 1)
@@ -674,8 +677,8 @@ class DialogoRespaldo(QtWidgets.QDialog):
         texto, urgente = texto_respaldo(self.base)
         conteos, movs, pdfs = self.base.resumen_datos()
         self.titulo.setText("Your data is not protected" if urgente else "Your data is protected")
-        self.icono.setPixmap(icono("candado" if urgente else "check", "#9B1C1C" if urgente else "#1E6B3A", 22))
-        self.icono.setStyleSheet(f"background: {'#FBEAEA' if urgente else '#E7F3EA'}; border-radius: 20px;")
+        self.icono.setPixmap(icono("candado" if urgente else "check", ROJO if urgente else VERDE, 22))
+        self.icono.setStyleSheet(f"background: {FONDO_ROJO if urgente else FONDO_VERDE}; border-radius: 20px;")
         perder = (f" If this computer broke today, you'd lose {conteos} count{'s' if conteos != 1 else ''}, "
                   f"{movs} movement{'s' if movs != 1 else ''} and {pdfs} signed report{'s' if pdfs != 1 else ''}."
                   if urgente and conteos else "")
@@ -831,7 +834,7 @@ class Visor(QtWidgets.QGraphicsView):
         self.setScene(QtWidgets.QGraphicsScene(self))
         self.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setBackgroundBrush(QtGui.QColor(40, 40, 40))
+        self.setBackgroundBrush(QtGui.QColor(13, 13, 13))
         self.modo = "mover"
         self.pix = None
         self.elementos = []
@@ -915,7 +918,7 @@ class Visor(QtWidgets.QGraphicsView):
             self.tam_defecto = float(np.median(lados))
         for n, d in enumerate(dets, 1):
             x1, y1, x2, y2 = d["caja"]
-            color = QtGui.QColor(*(CIAN if d["origen"] == "manual" else AMARILLO))
+            color = QtGui.QColor(*(CAJA_MANUAL if d["origen"] == "manual" else CAJA_IA))
             pluma = QtGui.QPen(color, 2)
             pluma.setCosmetic(True)                      # mismo grosor con cualquier zoom
             r = self.scene().addRect(QtCore.QRectF(x1, y1, x2 - x1, y2 - y1), pluma)
@@ -962,7 +965,7 @@ class Visor(QtWidgets.QGraphicsView):
             return
         if self.modo == "agregar" and ev.button() == QtCore.Qt.MouseButton.LeftButton:
             self.inicio = self.mapToScene(ev.position().toPoint())
-            pluma = QtGui.QPen(QtGui.QColor(*CIAN), 2, QtCore.Qt.PenStyle.DashLine)
+            pluma = QtGui.QPen(QtGui.QColor(*CAJA_MANUAL), 2, QtCore.Qt.PenStyle.DashLine)
             pluma.setCosmetic(True)
             self.goma = self.scene().addRect(QtCore.QRectF(self.inicio, self.inicio), pluma)
             return

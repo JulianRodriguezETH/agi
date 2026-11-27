@@ -25,7 +25,8 @@ import excel
 import reporte
 import seguridad
 import vuelo
-from piezas import (AMARILLO_MARCA, ARCHIVO_REVISION, CLARO, CONF_DEFECTO, FONDO, GRIS, LINEA, MODELO, TINTA,
+from piezas import (ACENTO, ARCHIVO_REVISION, AZUL, BORDE, CLARO, CONF_DEFECTO, DEGRADADO, DEGRADADO_SUAVE, FONDO, FONDO_ROJO,
+                    GRIS, LINEA, MODELO, RELIEVE, ROJO, SELECCION, SUPERFICIE, TEXTO, TINTA, VERDE,
                     Detector, DialogoAcceso, DialogoRespaldo, DialogoUsuarios, Extractor, Foto, Marca, Visor,
                     cargar_fuentes, carpeta_datos, comprobar_modelo, crear_sesion, guardar_imagen, icono,
                     instalar_registro_errores, leer_imagen, pixmap_marca, sombra, tomar_candado)
@@ -34,111 +35,154 @@ CAIDA_ALERTA = 5.0
 MESES = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 TITULOS = '"Manrope", "Segoe UI", "Inter", sans-serif'      # Manrope va en la carpeta fuentes/
 
-# Acabado premium: barra negra, amarillo solo como acento, grises calidos y lineas finas.
+# Tema oscuro: pagina negra, tarjetas gris carbon con borde fino, botones en pildora; blanco como acento y azul pizarra en lo destacado.
+# Ojo con las pildoras: Qt dibuja la esquina cuadrada si el radio no es menor que la mitad del alto; por eso cada
+# boton fija su alto minimo y usa un radio un poco menor.
 ESTILO = f"""
-QWidget {{ font-family: "Segoe UI", "Inter", "Noto Sans", sans-serif; font-size: 14px; color: {TINTA}; }}
+QWidget {{ font-family: "Segoe UI", "Inter", "Noto Sans", sans-serif; font-size: 14px; color: {TEXTO}; }}
 QMainWindow, QDialog, #pagina {{ background: {FONDO}; }}
-#barra {{ background: {TINTA}; }}
-#barra QLabel {{ color: #FFFFFF; background: transparent; font-weight: 500; }}
-#barra QPushButton#nav {{ border: none; padding: 10px 16px; border-radius: 10px; font-size: 15px; font-weight: 500; background: transparent; color: {CLARO}; }}
-#barra QPushButton#nav:hover {{ color: #FFFFFF; }}
-#barra QPushButton#nav:checked {{ background: #2A2820; color: {AMARILLO_MARCA}; font-weight: 600; }}
-#barra QPushButton#respaldo {{ border: 1px solid #3A382F; border-radius: 15px; padding: 6px 14px; min-height: 18px; font-size: 13px; font-weight: 500; background: transparent; color: {CLARO}; }}
-#barra QPushButton#respaldo:hover {{ border-color: {GRIS}; color: #FFFFFF; }}
-#barra QLabel#avatar {{ background: #2A2820; color: {AMARILLO_MARCA}; border-radius: 16px; font-weight: 600; }}
+#barra {{ background: {SUPERFICIE}; }}
+#barra QLabel {{ color: {TEXTO}; background: transparent; font-weight: 500; }}
+#barra QPushButton#nav {{ border: none; padding: 10px 16px; min-height: 18px; border-radius: 17px; font-size: 15px; font-weight: 500; background: transparent; color: {GRIS}; }}
+#barra QPushButton#nav:hover {{ color: {TEXTO}; background: transparent; }}
+#barra QPushButton#nav:checked {{ background: #2A2A2A; color: {ACENTO}; font-weight: 600; }}
+#barra QPushButton#respaldo {{ border: 1px solid {BORDE}; border-radius: 15px; padding: 6px 14px; min-height: 18px; font-size: 13px; font-weight: 500; background: {RELIEVE}; color: {CLARO}; }}
+#barra QPushButton#respaldo:hover {{ border-color: #666666; color: {TEXTO}; }}
+#barra QLabel#avatar {{ background: #2A2A2A; color: {ACENTO}; border-radius: 16px; font-weight: 600; }}
 #titulo {{ font-family: {TITULOS}; font-size: 32px; font-weight: 700; }}
 #seccion {{ font-size: 16px; font-weight: 600; }}
+#h2 {{ font-family: "Manrope SemiBold", {TITULOS}; font-size: 28px; font-weight: 600; }}
+#h3 {{ font-family: "Manrope SemiBold", {TITULOS}; font-size: 20px; font-weight: 600; }}
+#h2_sub {{ color: {GRIS}; font-size: 15px; }}
 #destacado {{ font-family: {TITULOS}; font-size: 20px; font-weight: 700; }}
 #sub {{ color: {GRIS}; font-size: 15px; }}
 #gris {{ color: {GRIS}; }}
 #rotulo {{ color: {GRIS}; font-size: 11px; font-weight: 600; }}
 #numero {{ font-family: {TITULOS}; font-size: 64px; font-weight: 700; }}
 #numero_med {{ font-family: {TITULOS}; font-size: 28px; font-weight: 700; }}
-#heroe {{ background: {TINTA}; border-radius: 14px; }}
+#heroe {{ background: {DEGRADADO}; border-radius: 14px; }}
 #heroe QLabel {{ background: transparent; color: {CLARO}; }}
 #heroe QLabel#heroe_rotulo {{ font-size: 11px; font-weight: 600; letter-spacing: 1.4px; }}
-#heroe QLabel#heroe_numero {{ color: {AMARILLO_MARCA}; font-family: {TITULOS}; font-size: 60px; font-weight: 700; }}
-#heroe QLabel#heroe_valor {{ color: #FFFFFF; font-family: {TITULOS}; font-size: 24px; font-weight: 700; }}
-#tarjeta {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 16px; }}
-#caja {{ background: {FONDO}; border-radius: 10px; }}
+#heroe QLabel#heroe_numero {{ color: {ACENTO}; font-family: {TITULOS}; font-size: 60px; font-weight: 700; }}
+#heroe QLabel#heroe_valor {{ color: {TEXTO}; font-family: {TITULOS}; font-size: 24px; font-weight: 700; }}
+#premio {{ background: {DEGRADADO}; border-radius: 16px; }}
+#premio QLabel {{ background: transparent; color: {CLARO}; font-size: 15px; }}
+#premio QLabel#heroe_rotulo {{ font-size: 12px; font-weight: 600; letter-spacing: 1.6px; }}
+#premio QLabel#heroe_numero {{ color: {ACENTO}; font-family: {TITULOS}; font-size: 76px; font-weight: 700; }}
+#beneficios {{ background: {DEGRADADO_SUAVE}; border: 1px solid {LINEA}; border-radius: 16px; }}
+#beneficios QLabel {{ background: transparent; }}
+#anuncio {{ background: {DEGRADADO}; border-radius: 16px; }}
+#anuncio QLabel {{ background: transparent; color: {CLARO}; font-size: 15px; }}
+#anuncio QLabel#h3 {{ color: {TEXTO}; font-size: 18px; }}
+#tarjeta {{ background: {SUPERFICIE}; border: 1px solid {LINEA}; border-radius: 16px; }}
+#caja {{ background: {RELIEVE}; border-radius: 12px; }}
 #caja QLabel {{ background: transparent; }}
-#aviso {{ background: #FDF1E3; border: 1px solid #F1D9BC; border-radius: 10px; }}
-#aviso QLabel {{ color: #7A3A05; background: transparent; }}
-#aviso QPushButton {{ color: #7A3A05; font-weight: 600; border: none; background: transparent; text-decoration: underline; padding: 8px; }}
+#aviso {{ background: {DEGRADADO}; border: none; border-radius: 12px; }}
+#aviso QLabel {{ color: {TEXTO}; background: transparent; }}
+#aviso QPushButton {{ color: {AZUL}; font-weight: 600; border: none; background: transparent; text-decoration: underline; padding: 8px; }}
 #paso {{ font-size: 15px; color: {GRIS}; }}
-#paso[estado="actual"] {{ color: {TINTA}; font-weight: 600; }}
-#paso_n {{ border-radius: 13px; font-size: 13px; font-weight: 600; border: 1px solid #A9A69B; color: {GRIS}; background: transparent; }}
-#paso_n[estado="actual"] {{ background: {AMARILLO_MARCA}; border-color: {AMARILLO_MARCA}; color: {TINTA}; }}
-#paso_n[estado="hecho"] {{ background: {TINTA}; border-color: {TINTA}; color: {AMARILLO_MARCA}; }}
-QPushButton {{ background: #FFFFFF; border: 1px solid #CECBC1; border-radius: 10px; padding: 10px 16px; font-weight: 600; }}
-QPushButton:hover {{ border-color: {TINTA}; }}
-QPushButton:disabled {{ color: #8C8A80; border-color: {LINEA}; }}
-QPushButton#primario {{ background: {AMARILLO_MARCA}; color: {TINTA}; border: none; border-bottom: 2px solid #DDB900; border-radius: 10px; padding: 12px 24px; font-weight: 600; font-size: 15px; }}
-QPushButton#primario:hover {{ background: #FFDF3D; }}
-QPushButton#primario:pressed {{ background: #F2C900; border-bottom-color: #F2C900; }}
-QPushButton#primario:disabled {{ background: {LINEA}; border-bottom-color: {LINEA}; color: #8C8A80; }}
-QPushButton#secundario {{ background: #FFFFFF; border: 1px solid #CECBC1; border-radius: 10px; padding: 12px 20px; font-weight: 600; font-size: 15px; }}
-QPushButton#secundario:hover {{ border-color: {TINTA}; }}
-QPushButton#secundario:checked {{ background: {TINTA}; color: #FFFFFF; border-color: {TINTA}; }}
+#paso[estado="actual"] {{ color: {TEXTO}; font-weight: 600; }}
+#paso_n {{ border-radius: 13px; font-size: 13px; font-weight: 600; border: 1px solid #5A5A5A; color: {GRIS}; background: transparent; }}
+#paso_n[estado="actual"] {{ background: {ACENTO}; border-color: {ACENTO}; color: {TINTA}; }}
+#paso_n[estado="hecho"] {{ background: {RELIEVE}; border-color: {BORDE}; color: {ACENTO}; }}
+QPushButton {{ background: {RELIEVE}; border: 1px solid {BORDE}; border-radius: 19px; min-height: 19px; padding: 10px 16px; font-weight: 600; color: {TEXTO}; }}
+QPushButton:hover {{ border-color: #666666; background: #262626; }}
+QPushButton:disabled {{ color: #666666; border-color: {LINEA}; background: {SUPERFICIE}; }}
+QPushButton#primario {{ background: {ACENTO}; color: {TINTA}; border: 1px solid {ACENTO}; border-radius: 21px; min-height: 20px; padding: 12px 24px; font-weight: 600; font-size: 15px; }}
+QPushButton#primario:hover {{ background: #E6E6E6; border-color: #E6E6E6; }}
+QPushButton#primario:pressed {{ background: #CCCCCC; border-color: #CCCCCC; }}
+QPushButton#primario:disabled {{ background: {RELIEVE}; border-color: {RELIEVE}; color: #666666; }}
+QPushButton#secundario {{ background: {RELIEVE}; border: 1px solid {BORDE}; border-radius: 21px; min-height: 20px; padding: 12px 20px; font-weight: 600; font-size: 15px; }}
+QPushButton#secundario:hover {{ border-color: #666666; }}
+QPushButton#secundario:checked {{ background: #3D3D3D; color: {TEXTO}; border-color: #8C8C8C; }}
 QPushButton#plano {{ border: none; background: transparent; color: {GRIS}; padding: 10px 12px; font-weight: 500; }}
-QPushButton#plano:hover {{ color: {TINTA}; }}
-QLineEdit, QComboBox, QDateEdit, QSpinBox {{ min-height: 42px; border: 1px solid #CECBC1; border-radius: 10px; padding: 0 12px; background: #FFFFFF; }}
-QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus {{ border: 1px solid {TINTA}; }}
-QTableWidget {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 16px; padding: 6px; gridline-color: #EFEDE7; }}
-QTableWidget::item {{ padding: 0 18px; border-bottom: 1px solid #EFEDE7; }}
-QTableWidget::item:selected {{ background: #FFF4BF; color: {TINTA}; }}
+QPushButton#plano:hover {{ color: {TEXTO}; background: transparent; }}
+QLineEdit, QComboBox, QDateEdit, QSpinBox {{ min-height: 42px; border: 1px solid {BORDE}; border-radius: 10px; padding: 0 12px; background: #0D0D0D; color: {TEXTO};
+    selection-background-color: #34486A; selection-color: {TEXTO}; }}
+QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus {{ border: 1px solid {TEXTO}; }}
+QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled, QSpinBox:disabled {{ color: #808080; border-color: {LINEA}; }}
+QLineEdit:read-only {{ color: {GRIS}; }}
+QTableWidget {{ background: {SUPERFICIE}; border: 1px solid {LINEA}; border-radius: 16px; padding: 6px; gridline-color: {RELIEVE}; }}
+QTableWidget::item {{ padding: 0 18px; border-bottom: 1px solid {RELIEVE}; }}
+QTableWidget::item:selected {{ background: {SELECCION}; color: {TEXTO}; }}
 QSpinBox QLineEdit, QDateEdit QLineEdit, QComboBox QLineEdit {{ border: none; min-height: 0; padding: 0; background: transparent; }}
-QPlainTextEdit, QTextEdit, QListWidget {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 10px; padding: 8px; }}
-QListWidget::item:selected {{ background: #FFF4BF; color: {TINTA}; }}
+QPlainTextEdit, QTextEdit, QListWidget {{ background: #0D0D0D; border: 1px solid {LINEA}; border-radius: 10px; padding: 8px; color: {TEXTO}; }}
+QListWidget::item:selected {{ background: {SELECCION}; color: {TEXTO}; }}
 QCheckBox {{ spacing: 10px; }}
-QSlider::groove:horizontal {{ height: 6px; background: {LINEA}; border-radius: 3px; }}
-QSlider::sub-page:horizontal {{ background: {TINTA}; border-radius: 3px; }}
-QSlider::handle:horizontal {{ background: {AMARILLO_MARCA}; border: 2px solid {TINTA}; width: 14px; margin: -6px 0; border-radius: 9px; }}
+QSlider::groove:horizontal {{ height: 6px; background: {BORDE}; border-radius: 3px; }}
+QSlider::sub-page:horizontal {{ background: {CLARO}; border-radius: 3px; }}
+QSlider::handle:horizontal {{ background: {ACENTO}; border: 2px solid {FONDO}; width: 14px; margin: -6px 0; border-radius: 9px; }}
 QScrollBar:vertical {{ background: transparent; width: 12px; margin: 2px; }}
 QScrollBar:horizontal {{ background: transparent; height: 12px; margin: 2px; }}
-QScrollBar::handle {{ background: #CECBC1; border-radius: 4px; min-height: 32px; min-width: 32px; }}
-QScrollBar::handle:hover {{ background: #A9A69B; }}
+QScrollBar::handle {{ background: #3D3D3D; border-radius: 4px; min-height: 32px; min-width: 32px; }}
+QScrollBar::handle:hover {{ background: #5A5A5A; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
 QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 QSpinBox::up-button, QSpinBox::down-button {{ width: 0; border: none; }}
 QComboBox::drop-down, QDateEdit::drop-down {{ border: none; width: 26px; }}
-QHeaderView::section {{ background: #FFFFFF; border: none; border-bottom: 1px solid {LINEA}; padding: 14px 18px 10px 18px; color: {GRIS}; font-size: 11px; font-weight: 600; }}
+QHeaderView::section {{ background: {SUPERFICIE}; border: none; border-bottom: 1px solid {LINEA}; padding: 14px 18px 10px 18px; color: {GRIS}; font-size: 11px; font-weight: 600; }}
+QTableCornerButton::section {{ background: {SUPERFICIE}; border: none; }}
 QTabWidget::pane {{ border: none; }}
 QTabBar::tab {{ background: transparent; padding: 10px 4px; margin-right: 22px; color: {GRIS}; font-size: 15px; border-bottom: 2px solid transparent; }}
-QTabBar::tab:selected {{ color: {TINTA}; font-weight: 600; border-bottom: 2px solid {TINTA}; }}
+QTabBar::tab:selected {{ color: {TEXTO}; font-weight: 600; border-bottom: 2px solid {TEXTO}; }}
 QStatusBar {{ background: {FONDO}; border-top: 1px solid {LINEA}; color: {GRIS}; font-size: 12px; }}
 QStatusBar::item {{ border: none; }}
 QStatusBar QLabel {{ color: {GRIS}; font-size: 12px; }}
-#panel_marca {{ background: {TINTA}; }}
+#panel_marca {{ background: {DEGRADADO}; }}
 #panel_marca QLabel {{ color: {CLARO}; background: transparent; font-size: 14px; }}
-#panel_marca QLabel#lema {{ font-family: "Manrope SemiBold", "Segoe UI", sans-serif; font-size: 30px; color: #FFFFFF; }}
+#panel_marca QLabel#lema {{ font-family: "Manrope SemiBold", "Segoe UI", sans-serif; font-size: 30px; color: {TEXTO}; }}
 #panel_marca QLabel#lema_sub {{ font-size: 15px; }}
 #entrar_titulo {{ font-family: {TITULOS}; font-size: 28px; font-weight: 700; }}
 #campo {{ font-size: 13px; font-weight: 600; }}
-#error {{ color: #A32D0B; }}
+#error {{ color: {ROJO}; }}
 #panel_marca QLabel#error_oscuro {{ color: #FFB59E; }}
-#panel_marca QLineEdit {{ color: {TINTA}; padding: 0 12px; }}
-QTableWidget::item:hover {{ background: #FAF8F2; }}
-QProgressBar {{ background: {LINEA}; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; color: transparent; }}
-QProgressBar::chunk {{ background: {AMARILLO_MARCA}; border-radius: 3px; }}
-QToolTip {{ background: {TINTA}; color: #FFFFFF; border: none; border-radius: 6px; padding: 6px 10px; font-size: 13px; }}
-QMenu {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 10px; padding: 6px; }}
+#panel_marca QLineEdit {{ color: {TEXTO}; padding: 0 12px; }}
+QTableWidget::item:hover {{ background: #1A1A1A; }}
+QProgressBar {{ background: {BORDE}; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; color: transparent; }}
+QProgressBar::chunk {{ background: {ACENTO}; border-radius: 3px; }}
+QToolTip {{ background: #262626; color: {TEXTO}; border: 1px solid {BORDE}; border-radius: 6px; padding: 6px 10px; font-size: 13px; }}
+QMenu {{ background: #1A1A1A; border: 1px solid {BORDE}; border-radius: 10px; padding: 6px; color: {TEXTO}; }}
 QMenu::item {{ padding: 8px 18px; border-radius: 6px; }}
-QMenu::item:selected {{ background: {FONDO}; color: {TINTA}; }}
-QComboBox QAbstractItemView {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 10px; padding: 4px; outline: none;
-    selection-background-color: {FONDO}; selection-color: {TINTA}; }}
-QCalendarWidget QWidget#qt_calendar_navigationbar {{ background: {TINTA}; }}
-QCalendarWidget QToolButton {{ color: #FFFFFF; background: transparent; font-weight: 600; padding: 6px; }}
-QCalendarWidget QAbstractItemView {{ selection-background-color: {AMARILLO_MARCA}; selection-color: {TINTA}; outline: none; }}
-QPushButton#enlace {{ color: #7A3A05; font-weight: 600; border: none; background: transparent; text-decoration: underline; padding: 8px; }}
+QMenu::item:selected {{ background: #2E2E2E; color: {TEXTO}; }}
+QComboBox QAbstractItemView {{ background: #1A1A1A; color: {TEXTO}; border: 1px solid {BORDE}; border-radius: 10px; padding: 4px; outline: none;
+    selection-background-color: #2E2E2E; selection-color: {TEXTO}; }}
+QCalendarWidget QWidget#qt_calendar_navigationbar {{ background: {SUPERFICIE}; }}
+QCalendarWidget QToolButton {{ color: {TEXTO}; background: transparent; font-weight: 600; padding: 6px; }}
+QCalendarWidget QAbstractItemView {{ background: {SUPERFICIE}; color: {TEXTO}; alternate-background-color: #1A1A1A;
+    selection-background-color: {ACENTO}; selection-color: {TINTA}; outline: none; }}
+QCalendarWidget QAbstractItemView:disabled {{ color: #555555; }}
+QPushButton#enlace {{ color: {AZUL}; font-weight: 600; border: none; background: transparent; text-decoration: underline; padding: 8px; }}
 #resumen_rev {{ color: {GRIS}; }}
-QPushButton#pestana {{ border: none; background: transparent; color: {GRIS}; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }}
-QPushButton#pestana:checked {{ background: {FONDO}; color: {TINTA}; }}
-QPushButton#pestana:hover {{ color: {TINTA}; }}
-#caja_oscura {{ background: {TINTA}; border-radius: 10px; }}
+QPushButton#pestana {{ border: none; background: transparent; color: {GRIS}; padding: 6px 12px; min-height: 16px; border-radius: 13px; font-size: 13px; font-weight: 600; }}
+QPushButton#pestana:checked {{ background: #2E2E2E; color: {TEXTO}; }}
+QPushButton#pestana:hover {{ color: {TEXTO}; }}
+#caja_oscura {{ background: {DEGRADADO}; border-radius: 12px; }}
 #caja_oscura QLabel {{ background: transparent; color: {CLARO}; }}
-#caja_oscura QLabel#numero_med {{ color: {AMARILLO_MARCA}; }}
+#caja_oscura QLabel#numero_med {{ color: {ACENTO}; }}
 """
+
+
+def paleta_oscura():
+    """Colores base para lo que la hoja de estilos no pinta (casillas, calendario, ventanas de archivo)."""
+    R, C = QtGui.QPalette.ColorRole, QtGui.QColor
+    p = QtGui.QPalette()
+    for rol, color in ((R.Window, FONDO), (R.WindowText, TEXTO), (R.Base, "#0D0D0D"), (R.AlternateBase, "#1A1A1A"),
+                       (R.Text, TEXTO), (R.Button, RELIEVE), (R.ButtonText, TEXTO), (R.BrightText, TEXTO),
+                       (R.ToolTipBase, "#262626"), (R.ToolTipText, TEXTO), (R.PlaceholderText, "#808080"),
+                       (R.Highlight, "#34486A"), (R.HighlightedText, TEXTO), (R.Link, AZUL),
+                       (R.Light, "#3D3D3D"), (R.Midlight, "#2E2E2E"), (R.Mid, BORDE), (R.Dark, "#0A0A0A"), (R.Shadow, "#000000")):
+        p.setColor(rol, C(color))
+    for rol in (R.WindowText, R.Text, R.ButtonText):
+        p.setColor(QtGui.QPalette.ColorGroup.Disabled, rol, C("#666666"))
+    return p
+
+
+def aplicar_tema(app):
+    """Pone el tema oscuro completo: estilo Fusion (igual en Windows, Linux y Mac), paleta, letra y hoja de estilos."""
+    app.setStyle("Fusion")
+    app.setPalette(paleta_oscura())
+    cargar_fuentes()
+    app.setStyleSheet(ESTILO)
 
 
 def campo_numero(minimo=0, maximo=100000):
@@ -150,10 +194,27 @@ def campo_numero(minimo=0, maximo=100000):
     return sb
 
 
-def heroe(rotulo, numero, abajo=None, derecha=None):
-    """Tarjeta oscura con el numero que importa en amarillo, como en el PDF: rotulo arriba, numero grande,
-    un texto debajo y, si se da, un dato a la derecha alineado con el numero."""
+def centrado(e):
+    e.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignVCenter)
+    return e
+
+
+def heroe(rotulo, numero, abajo=None, derecha=None, centro=False):
+    """Tarjeta destacada con el numero que importa en grande, como en el PDF: rotulo arriba, numero grande,
+    un texto debajo y, si se da, un dato a la derecha alineado con el numero. Con centro=True todo va centrado
+    y con mas aire: es la tarjeta principal de una pantalla."""
     caja = QtWidgets.QFrame()
+    if centro:
+        caja.setObjectName("premio")
+        v = QtWidgets.QVBoxLayout(caja)
+        v.setContentsMargins(28, 26, 28, 30)
+        v.setSpacing(2)
+        rotulo.setObjectName("heroe_rotulo")
+        numero.setObjectName("heroe_numero")
+        for w in (rotulo, numero, abajo):
+            if w is not None:
+                v.addWidget(centrado(w))
+        return caja
     caja.setObjectName("heroe")
     v = QtWidgets.QVBoxLayout(caja)
     v.setContentsMargins(22, 16, 22, 18)
@@ -277,7 +338,7 @@ def aviso(texto, texto_boton=None, accion=None):
     a = QtWidgets.QFrame()
     a.setObjectName("aviso")
     lay = QtWidgets.QHBoxLayout(a)
-    lay.setContentsMargins(16, 8, 10, 8)
+    lay.setContentsMargins(22, 14, 16, 14)
     e = etiqueta(texto, envolver=True)
     lay.addWidget(e, 1)
     if texto_boton:
@@ -327,7 +388,7 @@ def celda(texto, derecha=False, negrita=False, alerta=False, enlace=False):
         texto = miles(texto)
     it = QtWidgets.QTableWidgetItem("" if texto is None else str(texto))
     if enlace:
-        it.setForeground(QtGui.QColor(TINTA))
+        it.setForeground(QtGui.QColor(TEXTO))
         f = it.font()
         f.setUnderline(True)
         f.setWeight(QtGui.QFont.Weight.DemiBold)
@@ -339,8 +400,8 @@ def celda(texto, derecha=False, negrita=False, alerta=False, enlace=False):
         f.setBold(True)
         it.setFont(f)
     if alerta:
-        it.setBackground(QtGui.QColor("#FDF1E3"))
-        it.setForeground(QtGui.QColor("#7A3A05"))
+        it.setBackground(QtGui.QColor(FONDO_ROJO))
+        it.setForeground(QtGui.QColor(ROJO))
     return it
 
 
@@ -367,7 +428,7 @@ class Pagina(QtWidgets.QScrollArea):
 
 
 class Barras(QtWidgets.QWidget):
-    """Reses en cada conteo: una barra por conteo, la ultima en amarillo."""
+    """Reses en cada conteo: una barra por conteo, la ultima en blanco."""
 
     def __init__(self):
         super().__init__()
@@ -393,9 +454,9 @@ class Barras(QtWidgets.QWidget):
             h = max(4, int(alto * total / maximo))
             ultima = i == len(self.datos) - 1
             p.setPen(QtCore.Qt.PenStyle.NoPen)
-            p.setBrush(QtGui.QColor(AMARILLO_MARCA if ultima else "#CECBC1"))
+            p.setBrush(QtGui.QColor(ACENTO if ultima else "#4D4D4D"))
             p.drawRoundedRect(QtCore.QRectF(x, base_y - h, ancho, h), 6, 6)
-            p.setPen(QtGui.QColor(TINTA))
+            p.setPen(QtGui.QColor(TEXTO))
             f = p.font(); f.setBold(True); p.setFont(f)
             p.drawText(QtCore.QRectF(x - 14, base_y - h - 22, ancho + 28, 20), QtCore.Qt.AlignmentFlag.AlignCenter, miles(total))
             f.setBold(False); p.setFont(f)
@@ -539,16 +600,19 @@ class PaginaFinca(Pagina):
         self.avisos.setSpacing(8)
         self.lay.addLayout(self.avisos)
         # ultimo conteo y grafica
-        self.ultimo_fecha = etiqueta("", "gris")
-        self.ultimo = etiqueta("—", "numero")
-        self.esperadas = etiqueta("", "gris", True)
+        self.ultimo_fecha = etiqueta("")
+        self.ultimo = etiqueta("—", "heroe_numero")
+        self.esperadas = centrado(etiqueta("", None, True))
         self.barras = Barras()
         self.b_g_conteos = boton("Counts", lambda: self.grafica(False), "pestana", marcable=True)
         self.b_g_meses = boton("By month", lambda: self.grafica(True), "pestana", marcable=True)
         cab_g = fila(etiqueta("Cattle per count", "gris"), None, self.b_g_conteos, self.b_g_meses, espacio=4)
         self.t_grafica = cab_g.itemAt(0).widget()
-        fila_g = fila(tarjeta(self.ultimo_fecha, self.ultimo, etiqueta("cattle", "sub"), self.esperadas),
-                      tarjeta(cab_g, self.barras), espacio=16)
+        t_ultimo = heroe(self.ultimo_fecha, self.ultimo, etiqueta("cattle"), centro=True)
+        t_ultimo.layout().insertStretch(0, 1)
+        t_ultimo.layout().addWidget(self.esperadas)
+        t_ultimo.layout().addStretch(1)
+        fila_g = fila(t_ultimo, tarjeta(cab_g, self.barras), espacio=16)
         fila_g.setStretch(0, 1)
         fila_g.setStretch(1, 1)
         self.lay.addLayout(fila_g)
@@ -562,16 +626,19 @@ class PaginaFinca(Pagina):
             c = QtWidgets.QVBoxLayout(caja)
             c.setContentsMargins(14, 10, 14, 12)
             c.setSpacing(2)
-            rot, val = etiqueta("", "gris"), etiqueta("", "numero_med")
+            rot, val = centrado(etiqueta("", "gris")), centrado(etiqueta("", "numero_med"))
             c.addWidget(rot)
             c.addWidget(val)
             pasos.addWidget(caja, 1)
             self.c_pasos.append((rot, val))
         self.c_estado = etiqueta("", None, True)
         self.c_detalle = etiqueta("", "gris", True)
-        self.t_cuadre = tarjeta(etiqueta("Inventory reconciliation", "seccion"),
-                                etiqueta("The previous count, plus what came in, minus what went out: that's how AGI knows how many cattle "
-                                         "there should be.", "gris", True), pasos, self.c_estado, self.c_detalle)
+        centrado(self.c_estado)
+        centrado(self.c_detalle)
+        self.t_cuadre = tarjeta(centrado(etiqueta("Inventory reconciliation", "h3")),
+                                centrado(etiqueta("The previous count, plus what came in, minus what went out: that's how AGI knows how many "
+                                                  "cattle there should be.", "gris", True)), pasos, self.c_estado, self.c_detalle, margen=28)
+        self.t_cuadre.layout().setSpacing(12)
         self.lay.addWidget(self.t_cuadre)
         # potreros
         self.t_potreros_tabla = tabla(["Paddock", "Last count", "Cattle"], derecha=(2,))
@@ -579,11 +646,11 @@ class PaginaFinca(Pagina):
         lp = QtWidgets.QVBoxLayout(self.t_potreros)
         lp.setContentsMargins(0, 0, 0, 0)
         lp.setSpacing(10)
-        lp.addWidget(etiqueta("By paddock", "seccion"))
+        lp.addWidget(centrado(etiqueta("By paddock", "h3")))
         lp.addWidget(self.t_potreros_tabla)
         self.lay.addWidget(self.t_potreros)
         # conteos
-        self.lay.addWidget(etiqueta("Counts", "seccion"))
+        self.lay.addWidget(centrado(etiqueta("Counts", "h3")))
         self.tabla = tabla(["Flight date", "Paddock", "Cattle", "Corral count", "Difference", "Counted by", "Report"], derecha=(2, 3))
         self.tabla.cellClicked.connect(self.clic)
         self.tabla.cellEntered.connect(lambda f, c: self.tabla.viewport().setCursor(
@@ -591,7 +658,7 @@ class PaginaFinca(Pagina):
             else QtCore.Qt.CursorShape.ArrowCursor))
         self.lay.addWidget(self.tabla)
         # movimientos
-        self.lay.addWidget(etiqueta("Movements", "seccion"))
+        self.lay.addWidget(centrado(etiqueta("Movements", "h3")))
         self.t_movs = tabla(["Date", "Movement", "Cattle", "Note", "Logged by", ""], derecha=(2,))
         self.t_movs.cellClicked.connect(self.clic_mov)
         self.t_movs.cellEntered.connect(lambda f, c: self.t_movs.viewport().setCursor(
@@ -620,7 +687,7 @@ class PaginaFinca(Pagina):
         vaciar(self.avisos)
         hall = b.hallazgos(finca_id)
         if hall:
-            self.avisos.addWidget(etiqueta("Findings from the last count", "seccion"))
+            self.avisos.addWidget(centrado(etiqueta("Findings from the last count", "h3")))
         for h in hall:
             self.avisos.addWidget(aviso(texto_hallazgo(h)[0].upper() + texto_hallazgo(h)[1:]))
         hist = b.historial(finca_id)
@@ -678,7 +745,7 @@ class PaginaFinca(Pagina):
             t.setItem(i, 0, celda(fecha_corta(m["fecha"])))
             t.setItem(i, 1, celda(m["nombre"]))
             it = celda(f"{'+' if m['signo'] > 0 else '−'}{miles(m['cantidad'])}", derecha=True, negrita=True)
-            it.setForeground(QtGui.QColor("#1E6B3A" if m["signo"] > 0 else "#9B1C1C"))
+            it.setForeground(QtGui.QColor(VERDE if m["signo"] > 0 else ROJO))
             t.setItem(i, 2, it)
             t.setItem(i, 3, celda(m["nota"] or "—"))
             t.setItem(i, 4, celda(m["usuario"]))
@@ -718,14 +785,14 @@ class PaginaFinca(Pagina):
         dif = q["diferencia"]
         if abs(dif) < margen:
             self.c_estado.setText(f"✓  Reconciled: the difference ({dif:+d}) is within the count's margin of error.")
-            self.c_estado.setStyleSheet("color: #1E6B3A; font-weight: 600;")
+            self.c_estado.setStyleSheet(f"color: {VERDE}; font-weight: 600;")
         elif dif < 0:
             self.c_estado.setText(f"{miles(-dif)} cattle missing without explanation. Check whether a sale, a death or "
                                   "a transfer is missing from the log; if not, it's worth riding the ranch.")
-            self.c_estado.setStyleSheet("color: #9B1C1C; font-weight: 600;")
+            self.c_estado.setStyleSheet(f"color: {ROJO}; font-weight: 600;")
         else:
             self.c_estado.setText(f"{miles(dif)} more cattle than expected: a birth or a purchase may be missing from the log.")
-            self.c_estado.setStyleSheet("color: #7A3A05; font-weight: 600;")
+            self.c_estado.setStyleSheet(f"color: {AZUL}; font-weight: 600;")
         self.c_detalle.setText("Between the two counts: " + ", ".join(
             f"{miles(n)} {datos.PLURAL_MOVIMIENTO[k] if n != 1 else datos.TIPOS_MOVIMIENTO[k][0].lower()}"
             for k, n in q["detalle"].items()) + ".")
@@ -1330,7 +1397,7 @@ class PaginaContar(QtWidgets.QWidget):
         if r["repetidas"]:
             filas.append(("Already counted (dotted)", r["repetidas"]))
         html_f = "".join(f"<tr><td style='color:{GRIS}; padding:5px 0'>{k}</td>"
-                         f"<td align='right' style='color:{TINTA}; font-weight:600; padding:5px 0'>{miles(v)}</td></tr>" for k, v in filas)
+                         f"<td align='right' style='color:{TEXTO}; font-weight:600; padding:5px 0'>{miles(v)}</td></tr>" for k, v in filas)
         self.leyenda.setText(f"<table width='100%' cellspacing='0'>{html_f}</table>")
         self.leyenda.setToolTip("Cattle already counted at another point are shown dotted, with the number they got the "
                                 "first time. They don't add up again." if r["repetidas"] else "")
@@ -1407,23 +1474,30 @@ class PaginaContar(QtWidgets.QWidget):
 
     # ---- paso 3
     def _paso3(self):
-        p = Pagina(720)
-        self.r_cab = etiqueta("", "sub")
+        p = Pagina(820)
+        p.lay.setSpacing(24)
+        self.r_cab = centrado(etiqueta("", "h2_sub", True))
         self.r_total = etiqueta("0", "heroe_numero")
         self.r_stats = [etiqueta("0", "numero_med") for _ in range(3)]
-        stats = QtWidgets.QHBoxLayout()
-        stats.setSpacing(12)
-        for e, rot in zip(self.r_stats, ("detected by the model", "added by you", "removed by you")):
-            caja = QtWidgets.QFrame()
-            caja.setObjectName("caja")
-            c = QtWidgets.QVBoxLayout(caja)
-            c.setContentsMargins(14, 12, 14, 12)
-            c.addWidget(e)
-            c.addWidget(etiqueta(rot, "gris"))
-            stats.addWidget(caja)
-        self.r_hall = QtWidgets.QVBoxLayout()
+        # los tres datos en una sola tarjeta, cada uno centrado en su columna
+        stats = QtWidgets.QFrame()
+        stats.setObjectName("beneficios")
+        ls = QtWidgets.QHBoxLayout(stats)
+        ls.setContentsMargins(24, 24, 24, 26)
+        ls.setSpacing(12)
+        for e, rot in zip(self.r_stats, ("Detected by the model", "Added by you", "Removed by you")):
+            c = QtWidgets.QVBoxLayout()
+            c.setSpacing(4)
+            c.addWidget(centrado(e))
+            c.addWidget(centrado(etiqueta(rot, "gris")))
+            ls.addLayout(c, 1)
+        # cuadre y hallazgos: un anuncio destacado, que solo aparece si hay algo que decir
+        self.r_anuncio = QtWidgets.QFrame()
+        self.r_anuncio.setObjectName("anuncio")
+        self.r_hall = QtWidgets.QVBoxLayout(self.r_anuncio)
+        self.r_hall.setContentsMargins(32, 26, 32, 28)
         self.r_hall.setSpacing(8)
-        self.r_rev = etiqueta("", None, True)
+        self.r_rev = centrado(etiqueta("", None, True))
         self.referencia = campo_numero(0)
         self.referencia.setSpecialValueText("Not counted")
         self.referencia.setFixedWidth(150)
@@ -1432,18 +1506,27 @@ class PaginaContar(QtWidgets.QWidget):
         self.r_estado = etiqueta("", "gris", True)
         self.r_mapa = QtWidgets.QLabel()
         self.r_mapa.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.r_mapa_txt = etiqueta("Count map: every animal counted, with its number, where it was seen.", "gris", True)
+        self.r_mapa_txt = centrado(etiqueta("Every animal counted, with its number, where it was seen.", "gris", True))
         self.r_union = QtWidgets.QVBoxLayout()
         self.ruta_mapa = None
         self.b_guardar = boton("Save and create PDF", self.elegir_pdf, "primario")
+        cab = QtWidgets.QVBoxLayout()
+        cab.setSpacing(6)
+        cab.addWidget(centrado(etiqueta("Count report", "h2")))
+        cab.addWidget(self.r_cab)
+        p.lay.addLayout(cab)
+        p.lay.addWidget(heroe(etiqueta("TOTAL CATTLE"), self.r_total, etiqueta("Each animal counted only once"), centro=True))
+        p.lay.addWidget(stats)
+        p.lay.addWidget(self.r_anuncio)
+        self.r_mapa_titulo = centrado(etiqueta("Count map", "h3"))
+        p.lay.addWidget(tarjeta(self.r_mapa_titulo, self.r_mapa_txt, self.r_mapa, self.r_union, self.r_rev, margen=28))
         p.lay.addWidget(tarjeta(
-            self.r_cab, heroe(etiqueta("TOTAL CATTLE"), self.r_total, etiqueta("each animal counted only once")),
-            stats, self.r_hall, self.r_rev,
-            self.r_union, self.r_mapa_txt, self.r_mapa,
-            etiqueta("The report is signed: nobody can change it without it showing.", "gris", True),
-            etiqueta("Did you count in the corral that same day? Enter it and AGI measures its own error.", "gris", True),
-            fila(self.referencia, self.r_ref, None), self.r_estado,
-            fila(None, boton("Back to review", lambda: self._a_revisar(), "plano"), self.b_guardar), margen=28))
+            centrado(etiqueta("Corral count", "h3")),
+            centrado(etiqueta("Did you count in the corral that same day? Enter it and AGI measures its own error.", "gris", True)),
+            fila(None, self.referencia, self.r_ref, None), margen=28))
+        p.lay.addWidget(centrado(etiqueta("The report is signed: nobody can change it without it showing.", "gris", True)))
+        p.lay.addWidget(self.r_estado)
+        p.lay.addLayout(fila(None, boton("Back to review", lambda: self._a_revisar()), self.b_guardar, None))
         p.lay.addStretch(1)
         self.pila.addWidget(p)
 
@@ -1476,13 +1559,16 @@ class PaginaContar(QtWidgets.QWidget):
         q = self.cuadre_ahora()
         if q and q["movimientos"]:
             ok = abs(q["diferencia"]) < max(datos.MARGEN_CUADRE, round(q["esperadas"] * CAIDA_ALERTA / 100.0))
-            self.r_hall.addWidget(etiqueta("Inventory reconciliation", "seccion"))
-            self.r_hall.addWidget(etiqueta(f"{texto_cuadre(q)} · AGI counted {miles(q['contadas'])}"
-                                           + ("  ✓ reconciled" if ok else f" ({q['diferencia']:+d})"), "gris", True))
+            self.r_hall.addWidget(centrado(etiqueta("Inventory reconciliation", "h3")))
+            self.r_hall.addWidget(centrado(etiqueta(f"{texto_cuadre(q)} · AGI counted {miles(q['contadas'])}"
+                                                    + ("  ✓ reconciled" if ok else f" ({q['diferencia']:+d})"), None, True)))
         if hall:
-            self.r_hall.addWidget(etiqueta("Findings during the count", "seccion"))
+            if self.r_hall.count():
+                self.r_hall.addSpacing(10)
+            self.r_hall.addWidget(centrado(etiqueta("Findings during the count", "h3")))
         for h in hall:
-            self.r_hall.addWidget(aviso(texto_hallazgo(h)[0].upper() + texto_hallazgo(h)[1:]))
+            self.r_hall.addWidget(centrado(etiqueta(texto_hallazgo(h)[0].upper() + texto_hallazgo(h)[1:] + ".", None, True)))
+        self.r_anuncio.setVisible(self.r_hall.count() > 0)
         rev = sum(1 for f in self.fotos if f.revisada)
         self.r_rev.setText(f"✓  {rev} of {len(self.fotos)} images reviewed" if rev == len(self.fotos)
                            else f"Warning: only {rev} of {len(self.fotos)} images were reviewed. The report will say so.")
@@ -1502,6 +1588,7 @@ class PaginaContar(QtWidgets.QWidget):
         hay = self.union is not None and bool(self.info.get("puntos"))
         self.r_mapa.setVisible(hay)
         self.r_mapa_txt.setVisible(hay)
+        self.r_mapa_titulo.setVisible(hay)
         if not hay:
             return
         rutas, dets = self._por_punto()
@@ -1857,7 +1944,7 @@ class Ventana(QtWidgets.QMainWindow):
             texto = "Backup: " + ("today" if dias < 1 else ("yesterday" if dias < 2 else f"{int(dias)} days ago"))
             al_dia = dias < 7
         self.b_respaldo.setText(texto)
-        self.b_respaldo.setIcon(QtGui.QIcon(icono("check", AMARILLO_MARCA, 14)) if al_dia else QtGui.QIcon())
+        self.b_respaldo.setIcon(QtGui.QIcon(icono("check", ACENTO, 14)) if al_dia else QtGui.QIcon())
 
     def refrescar_todo(self):
         self.p_fincas.refrescar()
@@ -1991,8 +2078,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("AGI")
     app.setApplicationDisplayName("AGI")
-    cargar_fuentes()
-    app.setStyleSheet(ESTILO)
+    aplicar_tema(app)
     app.setWindowIcon(QtGui.QIcon(pixmap_marca(256)))
     candado = tomar_candado(carpeta_datos())
     if candado is None:
