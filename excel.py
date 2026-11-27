@@ -2,7 +2,7 @@
 El archivo sale SIN cifrar: queda anotado en la bitacora. Necesita openpyxl."""
 import datetime
 
-TINTA, AMARILLO, LINEA, GRIS = "14130F", "FFD60A", "E8E6DF", "5A584F"
+TINTA, LINEA, GRIS = "0A0A0A", "E5E5E5", "5C5C5C"
 MESES = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 

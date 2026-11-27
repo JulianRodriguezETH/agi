@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- AGI: un solo trazo. Baja por un cuerno, rodea a la res que esta contando (el punto) y sube por el otro.
+       Blanco sobre negro. -->
+  <rect x="2" y="2" width="508" height="508" rx="112" fill="#000000" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="4"/>
+  <g id="trazo" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="34" d="M 136 120 C 140 200, 176 236, 200 262 A 86 86 0 1 0 312 262 C 336 236, 372 200, 376 120"/>
+    <circle cx="256" cy="328" r="24" fill="#FFFFFF" stroke="none"/>
+  </g>
+</svg>

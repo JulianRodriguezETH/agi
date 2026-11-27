@@ -5,28 +5,37 @@
   "finca": "Example Ranch A",
   "propietario": "Example Owner",
   "fecha_vuelo": "2026-11-22",
-  "emitido": "2026-11-25T11:01:53-05:00",
+  "emitido": "2026-11-27T14:01:00-05:00",
   "usuario": "rancher",
-  "total": 45,
-  "ia": 45,
+  "total": 28,
+  "ia": 28,
   "manual": 0,
   "quitadas": 0,
   "umbral": 0.3,
   "escala": 1.0,
-  "bitacora_previa": "95f22893b74948076bd4f93959fa83bf675fa8a010e76c77a6586ebe32513a22",
+  "bitacora_previa": "153675d205dc2c741f4f445800f1a6e3c5afc52c743b01853a14eb28e1600dd4",
   "fotos": [
    {
     "nombre": "0000_v1_00m00s_DJI_20261122_0001.jpg",
-    "sha256": "29c9e17bb5fa0a06548c35eb425d108251b7fce1f3c98e89c4862f17a6cbbf72",
-    "total": 44,
-    "ia": 44,
+    "sha256": "864907cbbbca2bce3804439dd92b2a7fd56926a699bc653d691fd6cc1d0be115",
+    "total": 24,
+    "ia": 24,
     "manual": 0,
     "quitadas": 0,
     "revisada": true
    },
    {
-    "nombre": "0001_v1_00m15s_DJI_20261122_0001.jpg",
-    "sha256": "837c5f3533f283665a1a0af27b7b6d19c310e96908fcdc09ee90b57aec098b70",
+    "nombre": "0001_v1_00m09s_DJI_20261122_0001.jpg",
+    "sha256": "f45f16ad054955da1a71a39a8c989afc7e7a1220dbfb49176b8cab1ccee9ffe4",
+    "total": 3,
+    "ia": 3,
+    "manual": 0,
+    "quitadas": 0,
+    "revisada": true
+   },
+   {
+    "nombre": "0002_v1_00m14s_DJI_20261122_0001.jpg",
+    "sha256": "0ac4be383873233dee9a099509e14cc4d39b53e741893e5309d213a0bf602102",
     "total": 1,
     "ia": 1,
     "manual": 0,
@@ -36,27 +45,27 @@
   ],
   "modelo_sha256": "838879bd19a47126bf69aea64df5e13ebd9c91ef59a40ffa589850f4ca685c5a",
   "hallazgos": [
-   "4 cattle missing without explanation: with the sales, purchases and births logged since Oct 20, 2026 there should be 49"
+   "4 cattle missing without explanation: with the sales, purchases and births logged since Oct 20, 2026 there should be 32"
   ],
   "origen": {
    "videos": [
-    "DJI_20261122_0001.MP4"
+    "DJI_20261122_0001.mp4"
    ],
-   "duracion_s": 15.0,
-   "puntos": 2,
+   "duracion_s": 14.1,
+   "puntos": 3,
    "partes": 1
   },
   "cuadre": {
    "fecha_base": "2026-10-20",
-   "base": 61,
+   "base": 44,
    "entradas": 2,
    "salidas": 14,
-   "esperadas": 49,
+   "esperadas": 32,
    "diferencia": -4
   },
-  "mapa_sha256": "3c1028b6c7e558d919eeba42059c65a6de4dc00bdf75a4ecf1883ce5327b5411"
+  "mapa_sha256": "a1f8aa211e55db19c6f29a59c8f3e3e63f8b2967bfcdcd11904c01d3f9bdacdb"
  },
- "pdf_sha256": "7bb77ce5da161eb4cd624ec1f36b820fee879315a06f5e7d4361e613b0db1f7e",
- "llave_publica": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAWZ0c2mfDCMEVh/6nZ49TQQVR667djZ665cyfyUT6h3g=\n-----END PUBLIC KEY-----\n",
- "firma": "mMuJJJTfy0I0lKqo/2ipmxX4gOlhDVkhwDlQEFv+EaBJQwGVEEN8tzSLTgfa7pJnEtGTUg70PgQRKSTIZbpJDw=="
+ "pdf_sha256": "9fe8acbca8b9ddc8fb15039e38832d868754334155c549986194aba17fe71cbd",
+ "llave_publica": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAdxjuiOLAZWiHHnr1X49TDkNekSLpiaZEs7h2QmFRx2g=\n-----END PUBLIC KEY-----\n",
+ "firma": "Xa0Dvm5h8dNYN1CPnYQGZSxqeUwlSV0ePf7RdvYKL+wgcgfyr/9n8Ida3UKjHM/0JJaDSAOb/Yt04e7BsYKpDQ=="
 }

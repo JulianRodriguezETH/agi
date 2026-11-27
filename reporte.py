@@ -12,7 +12,11 @@ import contar
 import datos
 import seguridad
 import piezas
-from piezas import AMARILLO, AMARILLO_MARCA, CIAN, CLARO, FONDO, GRIS, LINEA, TINTA, guardar_imagen, leer_imagen
+from piezas import CAJA_IA, CAJA_MANUAL, guardar_imagen, leer_imagen
+
+# El PDF es un documento para imprimir: papel blanco, tinta negra y grises neutros. No sigue el tema de la aplicacion.
+TINTA, GRIS, FONDO, LINEA, CLARO = "#0A0A0A", "#5C5C5C", "#F5F5F5", "#E5E5E5", "#D9D9D9"
+ACENTO, FILETE = "#FFFFFF", "#6B9BE1"      # numero destacado sobre las cajas negras; filete azul pizarra bajo la franja
 
 
 def resumen_total(fotos, umbral):
@@ -58,7 +62,7 @@ def generar(base, ruta, fotos, finca, propietario, fecha_vuelo, umbral, escala, 
         base.poner_referencia(conteo_id, referencia)
     publica = base.llave_publica()
 
-    # 2) el PDF, con la identidad de AGI: franja tinta con el sello, acento amarillo, Manrope en titulos
+    # 2) el PDF, con la identidad de AGI: franja negra con el logo, filete azul pizarra, Manrope en titulos
     fecha_txt = _fecha(fecha_vuelo)
     lugar = f"{finca} · {potrero}" if potrero else finca
     pdf = _Pdf(ruta, lugar, fecha_txt, codigo)
@@ -107,7 +111,7 @@ def generar(base, ruta, fotos, finca, propietario, fecha_vuelo, umbral, escala, 
             if esc < 1.0:
                 img = cv2.resize(img, None, fx=esc, fy=esc, interpolation=cv2.INTER_AREA)
             cajas = [[c * esc for c in d["caja"]] for d in v]
-            colores = [(CIAN[2], CIAN[1], CIAN[0]) if d["origen"] == "manual" else (AMARILLO[2], AMARILLO[1], AMARILLO[0]) for d in v]
+            colores = [CAJA_MANUAL[::-1] if d["origen"] == "manual" else CAJA_IA[::-1] for d in v]
             ids = [d.get("id", k2) for k2, d in enumerate(v, 1)]
             punteadas = [[c * esc for c in d["caja"]] for d in f.repetidas(umbral)]
             p = os.path.join(tmp, f"foto_{k}.jpg")
@@ -134,9 +138,9 @@ def generar(base, ruta, fotos, finca, propietario, fecha_vuelo, umbral, escala, 
 MESES = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
          "November", "December")
 ROJO, ROJO_FONDO = "#9B1C1C", "#FBEAEA"
-AMBAR, AMBAR_FONDO = "#7A4A0E", "#FDF1E2"
+AVISO, AVISO_FONDO = "#2B4A7F", "#EAF0FA"       # hallazgos: azul pizarra, como los avisos de la aplicacion
 VERDE, VERDE_FONDO = "#1E6B3A", "#E7F3EA"
-AZUL_CAJA = "#00C8FF"
+COLOR_IA, COLOR_MANUAL = "#%02X%02X%02X" % CAJA_IA, "#%02X%02X%02X" % CAJA_MANUAL     # los mismos de los recuadros
 LETRA = ["Segoe UI", "Inter", "Helvetica", "Arial"]
 
 
@@ -226,7 +230,7 @@ class _Pdf:
         self.n += 1
         m, b = self.MARGEN, self.BANDA
         self.p.fillRect(self.r(0, 0, self.ancho, b), _c(TINTA))
-        self.p.fillRect(self.r(0, b, self.ancho, 0.8), _c(AMARILLO_MARCA))
+        self.p.fillRect(self.r(0, b, self.ancho, 0.8), _c(FILETE))
         lado = 11.0
         img = piezas._imagen_sello(int(lado * self.k))
         if img is not None:
@@ -247,7 +251,7 @@ class _Pdf:
     def titulo(self, texto):
         self.cabe(22)
         self.y += 4
-        self.p.fillRect(self.r(self.MARGEN, self.y + 1.6, 1.2, 5), _c(AMARILLO_MARCA))
+        self.p.fillRect(self.r(self.MARGEN, self.y + 1.6, 1.2, 5), _c(TINTA))
         self.escribir(self.MARGEN + 4, self.y, self.util, 8, texto, 12.5, titulos=True)
         self.y += 11
 
@@ -272,7 +276,7 @@ class _Pdf:
         return h
 
     def aviso(self, texto, tipo):
-        color, fondo = {"rojo": (ROJO, ROJO_FONDO), "ambar": (AMBAR, AMBAR_FONDO), "verde": (VERDE, VERDE_FONDO)}[tipo]
+        color, fondo = {"rojo": (ROJO, ROJO_FONDO), "ambar": (AVISO, AVISO_FONDO), "verde": (VERDE, VERDE_FONDO)}[tipo]
         doc_h = self._alto_texto(texto, self.util - 14, 9)
         h = doc_h + 7
         self.cabe(h)
@@ -305,7 +309,7 @@ class _Pdf:
         h, wt = 46.0, 70.0
         self.caja(m, self.y, wt, h, TINTA, radio=3)
         self.escribir(m + 7, self.y + 6, wt - 14, 5, "TOTAL CATTLE", 8, CLARO, "semi", espaciado=14)
-        self.escribir(m + 6, self.y + 12, wt - 12, 22, _miles(t["total"]), 44, AMARILLO_MARCA, titulos=True)
+        self.escribir(m + 6, self.y + 12, wt - 12, 22, _miles(t["total"]), 44, ACENTO, titulos=True)
         self.escribir(m + 7, self.y + 35, wt - 14, 5, "each animal counted only once", 8, CLARO)
         # fichas al lado
         x0, gap = m + wt + 5, 4.0
@@ -378,7 +382,7 @@ class _Pdf:
                 if i == len(f) - 1:
                     color, peso = (VERDE, "semi") if c == "Yes" else (ROJO, "semi")
                 if i in (2, 3, 4, 5) and c == "0":
-                    color = "#A8A59B"
+                    color = "#A6A6A6"
                 self.escribir(x + 3, self.y, w - 6, fila, c, 8.5, color, peso,
                               alinear=al | QtCore.Qt.AlignmentFlag.AlignVCenter, cortar=(i == 0))
                 x += w
@@ -400,7 +404,7 @@ class _Pdf:
             x = m + i * (w + gap)
             self.caja(x, self.y, w, h, TINTA if marca else FONDO, None if marca else LINEA)
             self.escribir(x + 4, self.y + 4, w - 8, 5, lbl, 7.5, CLARO if marca else GRIS, cortar=True)
-            self.escribir(x + 4, self.y + 11, w - 8, 10, val, 17, AMARILLO_MARCA if marca else TINTA, titulos=True)
+            self.escribir(x + 4, self.y + 11, w - 8, 10, val, 17, ACENTO if marca else TINTA, titulos=True)
         self.y += h + 4
         margen = max(datos.MARGEN_CUADRE, round(q["esperadas"] * 0.05))
         dif = q["diferencia"]
@@ -420,8 +424,8 @@ class _Pdf:
     def leyenda(self):
         m, h = self.MARGEN, 8.0
         self.cabe(h + 4)
-        items = [("Counted by AGI", "solida", "#FFE600"), ("Added in review", "solida", AZUL_CAJA),
-                 ("Already counted at another point", "punteada", "#8A877D")]
+        items = [("Counted by AGI", "solida", COLOR_IA), ("Added in review", "solida", COLOR_MANUAL),
+                 ("Already counted at another point", "punteada", "#8C8C8C")]
         x = m
         for txt, tipo, color in items:
             pen = QtGui.QPen(_c(color), 0.6 * self.k)
@@ -467,7 +471,7 @@ class _Pdf:
                 x = m + i * (wf + gap)
                 fondo, borde, color = (FONDO, LINEA, TINTA)
                 if marca is True:
-                    fondo, borde, color = TINTA, None, AMARILLO_MARCA
+                    fondo, borde, color = TINTA, None, ACENTO
                 elif marca == "alerta":
                     fondo, borde, color = ROJO_FONDO, None, ROJO
                 self.caja(x, self.y, wf, 15, fondo, borde)
