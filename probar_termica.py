@@ -181,8 +181,10 @@ def _muestra(tex, x, y):
 def toma_oblicua(semilla=21, W=640, H=512):
     """Una toma termica simulada con la camara inclinada: el rebano de lado, en un potrero al amanecer, con pasto, matas,
     una trocha de ganado, un jagueey y la linea de arboles al fondo. Devuelve la temperatura en grados C.
-    Solo para mostrar siluetas: la ubicacion en el mapa usa las tomas a plomo."""
+    Solo para mostrar siluetas: la ubicacion en el mapa usa las tomas a plomo. La escena es la misma con cualquier
+    sensor (640 x 512 o 1280 x 1024): solo cambia cuanto detalle alcanza a ver."""
     rng = np.random.default_rng(semilla)
+    s = W / 640.0
     horizonte = int(H * 0.20)
     v, u = np.mgrid[0:H, 0:W].astype(np.float32)
     foco, h_cam = float(W), 6.5                                                    # camara a 6.5 m, mirando al horizonte
@@ -205,23 +207,24 @@ def toma_oblicua(semilla=21, W=640, H=512):
     cielo = v < horizonte
     temp = np.where(cielo, 20.3 + 0.5 * (v / max(horizonte, 1)), temp).astype(np.float32)                 # cielo frio y parejo
     col = np.arange(W, dtype=np.float32)
-    copa = 9 + 5 * np.clip(tex[2][40, (col * 0.7).astype(int) % 512], -1.6, 1.6) + 4 * np.clip(tex[0][200, (col * 3).astype(int) % 512], -1, 1)   # la linea de arboles del fondo
-    arbol = (v > horizonte - copa[None, :]) & (v < horizonte + 2)
-    temp = np.where(arbol, 22.9 + 0.55 * _muestra(tex[1], u * 3.0, v * 3.0) - 0.05 * (horizonte - v), temp).astype(np.float32)
+    copa = s * (9 + 5 * np.clip(_muestra(tex[2], col[None, :] * 0.7 / s, np.full((1, W), 40.0))[0], -1.6, 1.6)
+                + 4 * np.clip(_muestra(tex[0], col[None, :] * 3.0 / s, np.full((1, W), 200.0))[0], -1, 1))                 # la linea de arboles del fondo
+    arbol = (v > horizonte - copa[None, :]) & (v < horizonte + 2 * s)
+    temp = np.where(arbol, 22.9 + 0.55 * _muestra(tex[1], u * 3.0 / s, v * 3.0 / s) - 0.05 * (horizonte - v) / s, temp).astype(np.float32)
     reses, intentos = [], 0
     while len(reses) < 9 and intentos < 8000:
         intentos += 1
         t = float(rng.uniform(0.08, 1.0)) ** 0.8
-        largo = 30 + 112 * t
-        x, y = float(rng.uniform(0.06, 0.94) * W), horizonte + 10 + (H * 0.97 - horizonte - 10) * t
-        libre = all(abs(x - r[0]) > 0.56 * (largo + r[2]) or not (y - 0.80 * largo < r[1] + 6 and r[1] - 0.80 * r[2] < y + 6)
+        largo = (30 + 112 * t) * s
+        x, y = float(rng.uniform(0.06, 0.94) * W), horizonte + 10 * s + (H * 0.97 - horizonte - 10 * s) * t
+        libre = all(abs(x - r[0]) > 0.56 * (largo + r[2]) or not (y - 0.80 * largo < r[1] + 6 * s and r[1] - 0.80 * r[2] < y + 6 * s)
                     for r in reses)                                                # sin taparse: cada silueta entera
         if libre and 0.55 * largo < x < W - 0.55 * largo:
             reses.append((x, y, largo, bool(rng.random() < 0.45), float(rng.uniform(7.0, 10.0))))
     for x, y, largo, izq, dt in sorted(reses, key=lambda r: r[1]):                 # primero las del fondo
         capa = np.zeros((H, W), np.float32)
         pintar_res_de_lado(capa, x, y, largo, izq)
-        pelo = 1.0 + 0.05 * _muestra(tex[2], u * 1.3 + x, v * 1.3 + y)             # el pelaje no irradia parejo
+        pelo = 1.0 + 0.05 * _muestra(tex[2], (u * 1.3 + x) / s, (v * 1.3 + y) / s)   # el pelaje no irradia parejo
         cubre = np.clip(capa * 3.5, 0, 1)
         temp = np.where(capa > 0.02, temp * (1 - cubre) + (24.6 + capa * pelo * dt) * cubre, temp).astype(np.float32)
     return cv2.GaussianBlur(temp, (0, 0), 0.7) + rng.normal(0, 0.2, (H, W)).astype(np.float32)
@@ -265,7 +268,7 @@ def simular(guardar=""):
         """Temperatura del suelo: 24 C con el pasto, los arboles y la canada, mas un charco tibio,
         un camino tibio y piedras tibias pequenas (nada de eso es ganado)."""
         t = 24 + 1.2 * np.sin(E / 37.0) * np.cos(N / 51.0)
-        for i, (onda, grados) in enumerate(((0.5, 0.17), (1.5, 0.19), (5.0, 0.17), (18.0, 0.18), (60.0, 0.18))):
+        for i, (onda, grados) in enumerate(((0.18, 0.11), (0.5, 0.15), (1.5, 0.19), (5.0, 0.17), (18.0, 0.18), (60.0, 0.18))):
             t = t + grados * _muestra(tex[i % 3], E * 16 / onda + 53 * i, N * 16 / onda + 29 * i)
         vetas = _muestra(tex[0], (E + 0.6 * N) * 1.1, (N - 0.6 * E) * 9.0)         # el pasto, peinado por el viento
         t = t + 0.14 * vetas
@@ -284,9 +287,11 @@ def simular(guardar=""):
             t = t + 6.0 * (np.hypot(E - rx, N - ry) < 0.2)                            # piedras de 40 cm
         return t
 
-    def toma(E0, N0, yaw, altura):
-        """La foto termica que tomaria el dron en (E0, N0) a esa altura, mirando recto hacia abajo."""
-        g = T.gsd_nadir(altura, F)
+    def toma(E0, N0, yaw, altura, k=1):
+        """La foto termica que tomaria el dron en (E0, N0) a esa altura, mirando recto hacia abajo.
+        k=2: el mismo cuadro con un sensor de 1280 x 1024 (como el de una H30T), para las imagenes de muestra."""
+        W, H = 640 * k, 512 * k
+        g = T.gsd_nadir(altura, F) / k
         ps = math.radians(yaw)
         h = np.array([math.sin(ps), math.cos(ps)]); r = np.array([math.cos(ps), -math.sin(ps)])
         u, v = np.meshgrid(np.arange(W) - W / 2 + 0.5, np.arange(H) - H / 2 + 0.5)
@@ -303,7 +308,7 @@ def simular(guardar=""):
                 temp = temp + capa * dt
         return cv2.GaussianBlur(temp, (0, 0), 0.8) + rng.normal(0, 0.25, (H, W)).astype(np.float32)
 
-    fotos = []
+    fotos, tomas = [], {}
     k = 0
     lineas = np.arange(15, 300, 32)
     for li, N0 in enumerate(lineas):
@@ -312,6 +317,7 @@ def simular(guardar=""):
         for E0 in (xs if li % 2 == 0 else xs[::-1]):
             k += 1
             temp = toma(E0, N0, yaw, ALT)
+            tomas[f"SIM_{k:04d}_T.JPG"] = (E0, N0, yaw)
             # el GPS del dron se equivoca ~1 m
             ge, gn = E0 + rng.normal(0, 1.0), N0 + rng.normal(0, 1.0)
             lat, lon = T.metros_a_latlon(LAT0, LON0, ge, gn)
@@ -343,27 +349,37 @@ def simular(guardar=""):
 
     if guardar:
         os.makedirs(guardar, exist_ok=True)
-        CALIDAD = [cv2.IMWRITE_JPEG_QUALITY, 88]
+        CALIDAD = [cv2.IMWRITE_JPEG_QUALITY, 86]
         T.dibujar_mapa(puntos, os.path.join(guardar, "mapa_simulado.jpg"))
         T.escribir_kml(puntos, os.path.join(guardar, "aisladas_simulado.kml"))
-        for nombre, temp, manchas in por_foto:
+        # las imagenes de muestra se toman con un sensor de 1280 x 1024: el mismo cuadro, con el doble de detalle.
+        # Cada mancha hereda el estado (rebano o aislada) que le dio el analisis del vuelo completo.
+        g2 = T.gsd_nadir(ALT, F) / 2
+        for nombre, _temp, manchas in por_foto:
             if any(m.get("estado") == "aislada" for m in manchas) or nombre.endswith("_0024_T.JPG"):
+                fina = toma(*tomas[nombre], ALT, k=2)
+                finas = []
+                for m2 in T.detectar_manchas(fina, gsd=g2)[0]:
+                    cerca_de = min(manchas, key=lambda m: math.hypot(m["x"] * 2 - m2["x"], m["y"] * 2 - m2["y"]))
+                    if math.hypot(cerca_de["x"] * 2 - m2["x"], cerca_de["y"] * 2 - m2["y"]) < 24:
+                        m2["estado"] = cerca_de.get("estado")
+                        finas.append(m2)
                 cv2.imwrite(os.path.join(guardar, nombre.replace(".JPG", "_termica.jpg")),
-                            T.falso_color(temp, manchas, f"{nombre}   simulated   {len(manchas)} hot spots", "ISOLATED"), CALIDAD)
+                            T.falso_color(fina, finas, f"{nombre}   simulated   {len(finas)} hot spots", "ISOLATED"), CALIDAD)
         # una pasada baja (30 m) sobre el rebano, donde la silueta de cada res se distingue bien
         g30 = T.gsd_nadir(30.0, F)
         mejor = max(((sum(1 for (ax, ay, *_r), _a in animales if abs(ax - cx) < W * g30 / 2 - 1.5 and abs(ay - cy) < H * g30 / 2 - 1.5), cx, cy)
                      for cx in np.arange(70, 151, 2.0) for cy in np.arange(50, 131, 2.0)))
         lat, lon = T.metros_a_latlon(LAT0, LON0, mejor[1], mejor[2])
-        baja = [("SIM_30M_T.JPG", toma(mejor[1], mejor[2], 0.0, 30.0),
-                 {"lat": lat, "lon": lon, "altura": 30.0, "yaw": 0.0, "pitch": -90.0, "focal_mm": F})]
+        baja = [("SIM_30M_T.JPG", toma(mejor[1], mejor[2], 0.0, 30.0, k=2),
+                 {"lat": lat, "lon": lon, "altura": 30.0, "yaw": 0.0, "pitch": -90.0, "focal_mm": 2 * F})]   # 2F: el pixel mide la mitad
         _p, por_baja, _s = T.analizar(baja, informar=lambda *_: None)
         nombre, temp, manchas = por_baja[0]
         print(f"     pasada baja a 30 m: {mejor[0]} reses en el cuadro, {len(manchas)} manchas")
         cv2.imwrite(os.path.join(guardar, "SIM_30M_T_termica.jpg"),
                     T.falso_color(temp, manchas, f"{nombre}   simulated   30 m   {len(manchas)} hot spots", "ISOLATED"), CALIDAD)
         # y una toma con la camara inclinada, donde se ve la silueta de lado (sin ubicacion: no trae coordenadas)
-        obl = T.analizar([("SIM_OBLIQUE_T.JPG", toma_oblicua(), {})], informar=lambda *_: None)[1][0]
+        obl = T.analizar([("SIM_OBLIQUE_T.JPG", toma_oblicua(W=1280, H=1024), {})], informar=lambda *_: None)[1][0]
         print(f"     toma inclinada: 9 reses en el cuadro, {len(obl[2])} manchas")
         cv2.imwrite(os.path.join(guardar, "SIM_OBLIQUE_T_termica.jpg"),
                     T.falso_color(obl[1], obl[2], f"{obl[0]}   simulated   oblique view   {len(obl[2])} hot spots", "ISOLATED"), CALIDAD)

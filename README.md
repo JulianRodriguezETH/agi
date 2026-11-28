@@ -97,11 +97,11 @@ another paddock: 96 animals, AGI counts 96.
     <td valign="top"><b>Count map</b><br>Every animal once, with its number, where it was seen across the flight.</td>
   </tr>
   <tr>
-    <td><a href="ejemplos_termica/SIM_OBLIQUE_T_termica.jpg"><img src="ejemplos_termica/SIM_OBLIQUE_T_termica.jpg" alt="Simulated oblique thermal frame: the herd in silhouette, each animal marked with its temperature"></a></td>
-    <td><a href="ejemplos_termica/SIM_0081_T_termica.jpg"><img src="ejemplos_termica/SIM_0081_T_termica.jpg" alt="Thermal frame with an isolated animal marked in red"></a></td>
+    <td><a href="ejemplos_termica/SIM_OBLIQUE_T_termica.jpg"><img src="docs/img/11_termica_rebano.jpg" alt="Simulated oblique thermal frame: the terrain as a dot screen, the herd in colour, each animal framed with its number and temperature"></a></td>
+    <td><a href="ejemplos_termica/SIM_0081_T_termica.jpg"><img src="docs/img/12_termica_aislada.jpg" alt="Thermal frame from above with an isolated animal marked in red"></a></td>
   </tr>
   <tr>
-    <td valign="top"><b>Thermal, experimental</b><br><code>termica.py</code> marks every hot spot in a thermal photo with its temperature. These frames are simulated.</td>
+    <td valign="top"><b>Thermal, experimental</b><br><code>termica.py</code> marks every hot spot in a thermal photo with its temperature and renders it in 4K: the ground as a dot screen, colour only on the animals. These frames are simulated; click one for the full‑size image.</td>
     <td valign="top"><b>Isolated animals</b><br>Hot spots far from the herd are marked in red and geolocated, so someone can go and look.</td>
   </tr>
 </table>
