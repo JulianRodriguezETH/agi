@@ -6,12 +6,13 @@ Uso:
 
 Necesita: numpy, opencv-python y el DJI Thermal SDK (gratis en dji.com;
 --sdk es la carpeta donde esta libdirp.dll en Windows o libdirp.so en Linux).
+Con Pillow instalado (pip install pillow), los rotulos de las imagenes salen en Manrope; sin el, con la letra de OpenCV.
 
 Salidas:
-  <foto>_termica.jpg  la foto termica en falso color con cada mancha marcada
+  <foto>_termica.jpg  la foto termica en 4K (--ancho la cambia): el terreno en trama de puntos y cada mancha, en color, marcada
   manchas.csv         una fila por animal: lat, lon, temperatura, area, estado, enlace a Google Maps
   aisladas.kml        los puntos para abrir en Google Earth o Google Maps
-  mapa.jpg            croquis: rebano en verde, aisladas en rojo
+  mapa.jpg            croquis: rebano en ambar, aisladas en rojo
 
 Como decide que es una mancha: resta a cada pixel la temperatura de su entorno
 (fondo local) y se queda con las zonas mas calientes que el fondo que tengan
@@ -444,9 +445,13 @@ def dentro(lat, lon, pol):
 
 # --------------------------------------------------------------------- salidas
 
-# Paleta termica propia: del negro al blanco pasando por indigo, violeta, magenta y naranja (posicion, color BGR)
-_PALETA = ((0.00, (10, 6, 5)), (0.16, (58, 16, 18)), (0.36, (122, 29, 74)), (0.56, (122, 54, 181)),
-           (0.74, (58, 112, 240)), (0.89, (74, 200, 255)), (1.00, (255, 255, 255)))
+# Paleta de lo caliente (posicion, color BGR): indigo, violeta, magenta, naranja, ambar y un amarillo palido en lo mas
+# caliente. El terreno no la usa: va en una trama de puntos color hueso, para que solo lo que es animal lleve color.
+_PALETA = ((0.00, (96, 22, 52)), (0.22, (200, 48, 112)), (0.42, (170, 56, 216)), (0.62, (58, 108, 255)),
+           (0.84, (70, 184, 255)), (1.00, (176, 234, 255)))
+_HUESO = np.array((211, 223, 230), np.float32)          # los puntos del terreno y los rotulos (BGR)
+_ROJO = (114, 123, 255)                                 # las aisladas (BGR)
+_FUENTES = {}
 
 
 def _lut_termica():
@@ -457,64 +462,226 @@ def _lut_termica():
     return lut
 
 
-def falso_color(temp, manchas, titulo):
-    """La foto termica lista para mirar: el terreno queda oscuro y lo caliente resalta con un halo; cada mancha lleva
-    cuatro esquinas (blancas en el rebano, rojas las aisladas) y su numero con la temperatura; a la derecha, la escala."""
-    z = 2
-    lo, hi = float(np.percentile(temp, 1)), float(np.percentile(temp, 99.9))
-    hi = max(hi, lo + 4.0)
+def _fuente(px):
+    """Manrope (carpeta fuentes/) si Pillow esta instalado; si no, None y los rotulos salen con la letra de OpenCV."""
+    if px not in _FUENTES:
+        try:
+            from PIL import ImageFont
+            ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fuentes", "Manrope-SemiBold.ttf")
+            _FUENTES[px] = ImageFont.truetype(ruta, px)
+        except Exception:
+            _FUENTES[px] = None
+    return _FUENTES[px]
+
+
+def _sin_adornos(texto):
+    return texto.replace("\u00b0", " ").replace("\u00b7", "-").replace("\u00d7", "x")       # la letra de OpenCV solo trae ASCII
+
+
+def _ancho_texto(texto, px, espacio=0.0):
+    f = _fuente(px)
+    if f is None:
+        return cv2.getTextSize(_sin_adornos(texto), cv2.FONT_HERSHEY_SIMPLEX, px / 27.0, 1)[0][0]
+    return int(sum(round(f.getlength(c) + espacio) for c in texto))
+
+
+def _escribir(img, textos, grosor=1):
+    """Escribe sobre img (BGR) una lista de (texto, x, y de arriba, alto en px, color BGR, espacio entre letras)."""
+    if not textos:
+        return img
+    if _fuente(textos[0][3]) is None:
+        for t, x, y, px, color, _e in textos:
+            cv2.putText(img, _sin_adornos(t), (int(x), int(y + px * 0.9)), cv2.FONT_HERSHEY_SIMPLEX, px / 27.0, color, grosor, cv2.LINE_AA)
+        return img
+    from PIL import Image, ImageDraw
+    lienzo = Image.fromarray(np.ascontiguousarray(img[..., ::-1]))
+    d = ImageDraw.Draw(lienzo)
+    for t, x, y, px, color, esp in textos:
+        f, cx = _fuente(px), int(x)
+        for c in t:
+            d.text((cx, y), c, font=f, fill=tuple(int(v) for v in color[::-1]))
+            cx += round(f.getlength(c) + esp)                                      # paso entero: letras parejas
+    return np.ascontiguousarray(np.asarray(lienzo)[..., ::-1])
+
+
+def falso_color(temp, manchas, titulo, palabra_aislada="AISLADA", ancho_salida=3840):
+    """La foto termica lista para mirar, en 4K (ancho_salida pixeles de ancho; el alto sale de la proporcion de la foto).
+    El terreno va en una trama fina de puntos color hueso sobre negro (mas grande el punto donde esta mas tibio) y solo
+    las manchas detectadas llevan color, del indigo al ambar, con sus isotermas y un resplandor. Cada mancha lleva un
+    recuadro fino y una pestana con su numero y su temperatura (rojo las aisladas); a la derecha, la escala.
+    Lo tibio que no es animal (charcos, caminos, piedras) se queda en la trama: claro, pero sin color."""
+    alto0, ancho0 = temp.shape
+    ancho = int(max(640, ancho_salida))
+    z = ancho / float(ancho0)                                                      # pixeles de salida por pixel del sensor
+    alto = int(round(alto0 * z))
+    k = ancho / 1280.0                                                             # todo lo dibujado crece con la salida
+
+    def e(v, minimo=1):
+        return max(minimo, int(round(v * k)))
+
+    kf = 1.0 + (k - 1.0) * 0.72                                                    # la letra crece algo menos: queda mas fina
+    linea = max(1, int(round(k * 0.6)))
     suave = cv2.bilateralFilter(temp.astype(np.float32), 5, 1.2, 1.6)              # solo para la vista: quita el grano sin borrar siluetas
-    x = np.clip((suave - lo) / (hi - lo), 0, 1) ** 1.3                             # la curva hunde el terreno y deja arriba lo caliente
-    x = cv2.resize(x, None, fx=z, fy=z, interpolation=cv2.INTER_CUBIC)
-    lut = _lut_termica()
-    img = cv2.LUT(cv2.merge([np.uint8(np.clip(x, 0, 1) * 255)] * 3), lut).astype(np.float32)
-    halo = cv2.GaussianBlur(img * (x[..., None] > 0.55), (0, 0), 7)                # resplandor alrededor de lo caliente
-    img = np.clip(img + 0.55 * halo, 0, 255)
-    alto, ancho = img.shape[:2]
+    cajas = np.zeros((alto0, ancho0), np.float32)
+    for m in manchas:
+        x1, y1, x2, y2 = m["caja"]
+        cajas[max(0, y1 - 3):y2 + 3, max(0, x1 - 3):x2 + 3] = 1.0
+    # el fondo de cada punto: el promedio del terreno a su alrededor, sin contar lo que cae dentro de las manchas
+    fuera = 1.0 - cajas
+    s_f = max(4.0, ancho0 / 16.0)
+    peso = cv2.GaussianBlur(fuera, (0, 0), s_f)
+    fondo = cv2.GaussianBlur(suave * fuera, (0, 0), s_f) / np.maximum(peso, 1e-3)
+    fondo = np.where(peso > 0.02, fondo, float(np.median(suave))).astype(np.float32)
+    tope = max([float(m.get("delta", 0.0)) for m in manchas] + [4.0])              # grados sobre el fondo de lo mas caliente
+    calor = np.clip((suave - fondo) / tope, 0, 1)
+    cajas = np.clip(cv2.GaussianBlur(cajas, (0, 0), 1.5) * 1.6, 0, 1)
+    alfa = np.clip((calor - 0.14) / 0.20, 0, 1)
+    alfa = alfa * alfa * (3 - 2 * alfa) * cajas                                    # 1 dentro de cada animal, 0 en el terreno
+
+    # --- el terreno, en gris: la temperatura de toda la foto mas el detalle fino (pasto, matas, huellas)
+    r_tapa = max(3, int(round(ancho0 / 640.0 * 3))) * 2 + 1
+    tapa = cv2.GaussianBlur(cv2.dilate(np.float32(alfa > 0.03), np.ones((r_tapa, r_tapa), np.uint8)), (0, 0), ancho0 / 320.0)
+    libre = tapa < 0.05                                                            # todo menos el animal y su borde
+    base = suave * (1 - tapa) + fondo * tapa
+    t_lo, t_hi = float(np.percentile(base, 1)), float(np.percentile(base, 99.7))
+    glo = np.clip((base - t_lo) / max(t_hi - t_lo, 1.0), 0, 1)
+    det = base - cv2.GaussianBlur(base, (0, 0), ancho0 / 40.0)
+    loc = np.clip(0.5 + det / (2.0 * max(3.0 * float(det[libre].std()) if libre.any() else 0.0, 0.6)), 0, 1)
+    gris = np.clip(0.60 * glo + 0.40 * loc, 0, 1) ** 2.1
+
+    G = np.clip(cv2.resize(gris, (ancho, alto), interpolation=cv2.INTER_CUBIC), 0, 1)
     yy, xx = np.mgrid[0:alto, 0:ancho].astype(np.float32)
-    vin = 1.0 - 0.42 * np.clip(np.hypot((xx - ancho / 2) / (ancho / 2), (yy - alto / 2) / (alto / 2)) - 0.55, 0, 1)
-    img = np.uint8(img * vin[..., None])
-    letra = cv2.FONT_HERSHEY_SIMPLEX
+    paso, r2 = 1.75 * k + 1.75, 0.70710678                                         # trama de puntos a 45 grados
+    u, v = (xx + yy) * r2, (xx - yy) * r2
+    cu, cv_ = np.round(u / paso) * paso, np.round(v / paso) * paso
+    gc = cv2.remap(G, (cu + cv_) * r2, (cu - cv_) * r2, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+    punto = np.clip(0.56 * paso * np.sqrt(gc) - np.hypot(u - cu, v - cv_) + 0.5, 0, 1)
+    del u, v, cu, cv_
+    terreno = punto * (0.35 + 0.65 * gc) + 0.06 * G
+    d = np.hypot((xx - ancho / 2) / (ancho / 2), (yy - alto / 2) / (alto / 2))
+    del xx, yy, punto, gc
+    vin = np.clip((d - 0.62) / 0.63, 0, 1)
+    vin = 1.0 - vin * vin * (3 - 2 * vin)                                          # se apaga hacia el negro en los bordes
+    img = (terreno * vin * 0.84)[..., None] * _HUESO
+    del terreno, vin, d
 
-    def rotulo(texto, x0, y0, color=(255, 255, 255), escala=0.42):
-        (tw, th), _ = cv2.getTextSize(texto, letra, escala, 1)
-        x0 = int(min(max(4, x0), ancho - tw - 8))
-        y0 = int(max(th + 8, y0))
-        fondo = img[y0 - th - 5:y0 + 4, x0 - 4:x0 + tw + 4]
-        fondo[:] = np.uint8(fondo * 0.35)                                          # placa oscura translucida bajo el texto
-        cv2.putText(img, texto, (x0, y0), letra, escala, color, 1, cv2.LINE_AA)
+    # --- cruces de registro, muy tenues, como en una mesa de trabajo
+    for fx in (0.2, 0.4, 0.6, 0.8):
+        for fy in (0.25, 0.5, 0.75):
+            px_, py_, b = int(ancho * fx), int(alto * fy), e(5)
+            cv2.line(img, (px_ - b, py_), (px_ + b, py_), (52.0, 52.0, 52.0), linea, cv2.LINE_AA)
+            cv2.line(img, (px_, py_ - b), (px_, py_ + b), (52.0, 52.0, 52.0), linea, cv2.LINE_AA)
 
+    # --- lo caliente, en color, con sus isotermas y su resplandor
+    lut = _lut_termica()
+    lima = max(0.5, 0.42 * z)                                                      # lima los escalones de la ampliacion
+    C0 = np.clip(cv2.GaussianBlur(cv2.resize(calor, (ancho, alto), interpolation=cv2.INTER_CUBIC), (0, 0), lima), 0, 1)
+    A = np.clip(cv2.GaussianBlur(cv2.resize(alfa, (ancho, alto), interpolation=cv2.INTER_CUBIC), (0, 0), lima), 0, 1)
+    color = cv2.LUT(cv2.merge([np.uint8(C0 ** 1.3 * 255)] * 3), lut).astype(np.float32)     # la curva deja el ambar para lo mas caliente
+    Ci = cv2.GaussianBlur(cv2.resize(cv2.GaussianBlur(calor, (0, 0), ancho0 / 640.0 * 1.5), (ancho, alto), interpolation=cv2.INTER_CUBIC),
+                          (0, 0), lima)                                            # mas liso que el color: curvas limpias, sin el grano del sensor
+    pend = np.hypot(cv2.Sobel(Ci, cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(Ci, cv2.CV_32F, 0, 1, ksize=3)) / 8.0 + 1e-6
+    iso = np.zeros_like(C0)
+    for nivel in (0.40, 0.56, 0.72, 0.88):                                         # curvas de igual temperatura dentro del animal
+        np.maximum(iso, np.clip(1.0 - np.abs(Ci - nivel) / (pend * 0.9 * linea), 0, 1), out=iso)
+    iso *= A * np.clip(pend * z * 40, 0, 1)                                        # sin curva donde el calor es parejo
+    color = color * (1.0 + 0.22 * iso[..., None]) + 26.0 * iso[..., None]
+    A3 = A[..., None]
+    img = img * (1 - A3) + color * A3
+    chico = (ancho // max(1, int(round(k))), alto // max(1, int(round(k))))        # el resplandor se calcula en pequeno
+    luz = cv2.resize(color * A3, chico, interpolation=cv2.INTER_AREA)
+    halo = 0.50 * cv2.GaussianBlur(luz, (0, 0), 11 * k / max(1, int(round(k)))) + 0.22 * cv2.GaussianBlur(luz, (0, 0), 3 * k / max(1, int(round(k))))
+    img = np.clip(img + cv2.resize(halo, (ancho, alto), interpolation=cv2.INTER_LINEAR), 0, 255)
+    del color, A3, luz, halo, iso, pend, Ci
+    sombra = e(40)
+    img[:sombra] *= np.linspace(0.30, 1.0, sombra, dtype=np.float32)[:, None, None]  # una sombra arriba, bajo el titulo
+    img = np.uint8(img)
+
+    # --- recuadros y pestanas
+    textos = []
+    px_l, esp_l = int(round(11 * kf)), round(1.1 * kf)
+    alto_p, relleno = int(round(20 * kf)), int(round(7 * kf))
     for n, m in enumerate(manchas, 1):
-        x1, y1, x2, y2 = [v * z for v in m["caja"]]
-        x1, y1, x2, y2 = x1 - 6, y1 - 6, x2 + 6, y2 + 6
-        color = (114, 123, 255) if m.get("estado") == "aislada" else (255, 255, 255)
-        brazo = int(max(5, min(12, (x2 - x1) / 3, (y2 - y1) / 3)))
-        for cx, cy, sx, sy in ((x1, y1, 1, 1), (x2, y1, -1, 1), (x2, y2, -1, -1), (x1, y2, 1, -1)):
-            cv2.line(img, (cx, cy), (cx + sx * brazo, cy), color, 1, cv2.LINE_AA)
-            cv2.line(img, (cx, cy), (cx, cy + sy * brazo), color, 1, cv2.LINE_AA)
-        txt = f"{n:02d}  {m['t_max']:.0f} C"
+        x1, y1, x2, y2 = [int(round(c * z)) for c in m["caja"]]
+        mg = e(7)
+        x1, y1, x2, y2 = max(1, x1 - mg), max(1, y1 - mg), min(ancho - 2, x2 + mg), min(alto - 2, y2 + mg)
+        aislada = m.get("estado") == "aislada"
+        color_l = _ROJO if aislada else (236, 240, 244)
+        tenue = tuple(int(c * 0.55) for c in color_l)
+        cv2.rectangle(img, (x1, y1), (x2, y2), tenue, linea, cv2.LINE_AA)
+        brazo = int(max(4 * k, min(11 * k, (x2 - x1) / 4, (y2 - y1) / 4)))
+        for ex, ey, sx, sy in ((x1, y1, 1, 1), (x2, y1, -1, 1), (x2, y2, -1, -1), (x1, y2, 1, -1)):      # las esquinas, mas vivas
+            cv2.line(img, (ex, ey), (ex + sx * brazo, ey), color_l, linea + (1 if k >= 2 else 0), cv2.LINE_AA)
+            cv2.line(img, (ex, ey), (ex, ey + sy * brazo), color_l, linea + (1 if k >= 2 else 0), cv2.LINE_AA)
+        num = f"{n:02d}"
+        txt = f"{m['t_max']:.0f}\u00b0C"
         if m["animales"] > 1:
-            txt += f"  x{m['animales']}"
-        rotulo(txt, x1, y1 - 7, color)
-    # titulo arriba y escala de temperatura a la derecha
-    img[:34] = np.uint8(img[:34] * np.linspace(0.35, 1.0, 34)[:, None, None])
-    cv2.putText(img, titulo, (12, 22), letra, 0.5, (235, 235, 235), 1, cv2.LINE_AA)
-    bx, by, bh = ancho - 22, 54, min(190, alto - 110)
-    img[by:by + bh, bx:bx + 6] = cv2.resize(lut[::-1], (6, bh), interpolation=cv2.INTER_LINEAR)
-    cv2.rectangle(img, (bx - 1, by - 1), (bx + 6, by + bh), (150, 150, 150), 1, cv2.LINE_AA)
-    cv2.putText(img, f"{hi:.0f} C", (bx - 34, by + 4), letra, 0.4, (235, 235, 235), 1, cv2.LINE_AA)
-    cv2.putText(img, f"{lo:.0f} C", (bx - 34, by + bh), letra, 0.4, (235, 235, 235), 1, cv2.LINE_AA)
-    return img
+            txt += f" \u00b7 \u00d7{m['animales']}"
+        if aislada:
+            txt += f" \u00b7 {palabra_aislada}"
+        w_num = _ancho_texto(num, px_l, esp_l) + 2 * relleno
+        w_txt = _ancho_texto(txt, px_l, esp_l) + 2 * relleno
+        tx = int(min(max(1, x1), ancho - w_num - w_txt - 2))
+        ty = y1 - alto_p if y1 - alto_p >= 2 else y1                               # la pestana va sobre el recuadro; si no cabe, dentro
+        zona = img[ty:ty + alto_p + 1, tx:tx + w_num + w_txt + 1]
+        zona[:] = np.uint8(zona * 0.18)
+        cv2.rectangle(img, (tx, ty), (tx + w_num, ty + alto_p), color_l, -1, cv2.LINE_AA)               # el numero, en una ficha llena
+        cv2.rectangle(img, (tx, ty), (tx + w_num + w_txt, ty + alto_p), color_l, linea, cv2.LINE_AA)
+        y_txt = ty + int(round((alto_p - px_l * 1.32) / 2))
+        textos.append((num, tx + relleno, y_txt, px_l, (12, 12, 12), esp_l))
+        textos.append((txt, tx + w_num + relleno, y_txt, px_l, color_l, esp_l))
+
+    # --- titulo, escala y marcas de las esquinas
+    px_t, esp_t = int(round(11 * kf)), round(1.4 * kf)
+    partes = [p.strip() for p in titulo.split("   ") if p.strip()]
+    if partes:
+        textos.append((partes[0].upper(), e(18), e(15), px_t, (240, 240, 240), esp_t))
+        resto = "  \u00b7  ".join(p.upper() for p in partes[1:])
+        if resto:
+            textos.append((resto, e(18) + _ancho_texto(partes[0].upper(), px_t, esp_t) + e(22), e(15), px_t, (150, 150, 150), esp_t))
+    t_med = float(np.median(fondo))
+    e_hi, e_lo = t_med + tope, t_lo
+    bx, by, bh, bw = ancho - e(24), e(62), int(min(e(200), alto - e(130))), e(5)
+    ts = e_hi - (np.arange(bh, dtype=np.float32) / max(1, bh - 1)) * (e_hi - e_lo)
+    cs = np.clip((ts - t_med) / tope, 0, 1)
+    a_s = np.clip((cs - 0.14) / 0.20, 0, 1)[:, None]
+    gris_s = (np.clip((ts - e_lo) / max(t_med + 0.14 * tope - e_lo, 0.5), 0, 1) * 0.72)[:, None] * _HUESO[None, :]
+    barra = cv2.LUT(cv2.merge([np.uint8(cs ** 1.3 * 255)[:, None]] * 3), lut)[:, 0].astype(np.float32) * a_s + gris_s * (1 - a_s)
+    img[by:by + bh, bx:bx + bw] = np.uint8(barra)[:, None, :]
+    px_e, esp_e = int(round(10 * kf)), round(0.7 * kf)
+    cada = next(c for c in (1, 2, 5, 10, 20, 50) if (e_hi - e_lo) / c <= 6)        # marcas de la escala, en grados redondos
+    for g in range(int(math.ceil(e_lo / cada)) * cada, int(math.floor(e_hi)) + 1, cada):
+        gy = by + int(round((e_hi - g) / max(e_hi - e_lo, 1e-6) * (bh - 1)))
+        if by <= gy < by + bh:
+            cv2.line(img, (bx - e(6), gy), (bx - e(2), gy), (170, 170, 170), linea, cv2.LINE_AA)
+            txt = f"{g}\u00b0C"
+            textos.append((txt, bx - e(11) - _ancho_texto(txt, px_e, esp_e), gy - int(px_e * 0.66), px_e, (200, 200, 200), esp_e))
+    for ex, ey, sx, sy in ((e(12), e(12), 1, 1), (ancho - e(13), e(12), -1, 1), (ancho - e(13), alto - e(13), -1, -1), (e(12), alto - e(13), 1, -1)):
+        cv2.line(img, (ex, ey), (ex + sx * e(14), ey), (120, 120, 120), linea, cv2.LINE_AA)
+        cv2.line(img, (ex, ey), (ex, ey + sy * e(14)), (120, 120, 120), linea, cv2.LINE_AA)
+    px_p, esp_p = int(round(9 * kf)), round(1.3 * kf)
+    pie = f"SENSOR {ancho0} \u00d7 {alto0}  \u00b7  AGI"
+    textos.append((pie, ancho - e(20) - _ancho_texto(pie, px_p, esp_p), alto - e(30), px_p, (120, 120, 120), esp_p))
+    return _escribir(img, textos, linea)
 
 
-def dibujar_mapa(puntos, ruta, lado=900):
+def dibujar_mapa(puntos, ruta, lado=2160):
+    """El mapa de lo encontrado, con el norte arriba y en el mismo lenguaje de las fotos: fondo negro, cuadricula de
+    puntos, el rebano en ambar y cada aislada en rojo con su pestana (numero y distancia al rebano)."""
     if not puntos:
         return
-    e = np.array([p["e"] for p in puntos]); n = np.array([p["n"] for p in puntos])
-    cx, cy = (e.min() + e.max()) / 2, (n.min() + n.max()) / 2
-    ext = max(e.max() - e.min(), n.max() - n.min(), 50.0) * 1.25
-    esc = (lado - 80) / ext
-    img = np.full((lado, lado, 3), 245, dtype=np.uint8)
+    k = lado / 900.0
+    kf = 1.0 + (k - 1.0) * 0.72
+    linea = max(1, int(round(k * 0.6)))
+
+    def e(v):
+        return max(1, int(round(v * k)))
+
+    este = np.array([p["e"] for p in puntos]); norte = np.array([p["n"] for p in puntos])
+    cx, cy = (este.min() + este.max()) / 2, (norte.min() + norte.max()) / 2
+    ext = max(este.max() - este.min(), norte.max() - norte.min(), 50.0) * 1.25
+    esc = (lado - e(80)) / ext
+    img = np.full((lado, lado, 3), 9, dtype=np.uint8)
 
     def xy(pe, pn):
         return int(lado / 2 + (pe - cx) * esc), int(lado / 2 - (pn - cy) * esc)
@@ -524,36 +691,70 @@ def dibujar_mapa(puntos, ruta, lado=900):
         if ext / (paso * m) >= 3:
             paso *= m
             break
+    punteo = tuple(int(c * 0.36) for c in _HUESO)
+    salto = e(6)
     v = math.floor((cx - ext / 2) / paso) * paso
     while v < cx + ext / 2:
-        cv2.line(img, (xy(v, 0)[0], 0), (xy(v, 0)[0], lado), (222, 222, 222), 1)
+        x = xy(v, 0)[0]
+        if 0 <= x < lado - linea:
+            for y in range(0, lado, salto):
+                img[y:y + linea, x:x + linea] = punteo
         v += paso
     v = math.floor((cy - ext / 2) / paso) * paso
     while v < cy + ext / 2:
-        cv2.line(img, (0, xy(0, v)[1]), (lado, xy(0, v)[1]), (222, 222, 222), 1)
+        y = xy(0, v)[1]
+        if 0 <= y < lado - linea:
+            for x in range(0, lado, salto):
+                img[y:y + linea, x:x + linea] = punteo
         v += paso
+    ambar = (70, 184, 255)
+    luz = np.zeros((lado, lado, 3), np.float32)
+    for p in puntos:
+        rebano = p["estado"] == "rebano"
+        cv2.circle(luz, xy(p["e"], p["n"]), e(4 if rebano else 6), ambar if rebano else _ROJO, -1, cv2.LINE_AA)
+    img = np.uint8(np.clip(img + 0.55 * cv2.GaussianBlur(luz, (0, 0), 9 * k), 0, 255))     # un resplandor bajo cada punto
     for p in puntos:
         if p["estado"] == "rebano":
-            cv2.circle(img, xy(p["e"], p["n"]), 5, (60, 160, 60), -1, cv2.LINE_AA)
-    usados = []
+            cv2.circle(img, xy(p["e"], p["n"]), e(4), ambar, -1, cv2.LINE_AA)
+    textos, usados = [], []
+    px_l, esp_l = int(round(11 * kf)), round(1.1 * kf)
+    alto_p, relleno = int(round(20 * kf)), int(round(7 * kf))
     for p in puntos:
         if p["estado"] != "rebano":
             c = xy(p["e"], p["n"])
-            cv2.circle(img, c, 8, (40, 40, 220), -1, cv2.LINE_AA)
+            cv2.circle(img, c, e(5), _ROJO, -1, cv2.LINE_AA)
+            cv2.circle(img, c, e(11), _ROJO, linea, cv2.LINE_AA)
             d = p.get("dist_rebano")
-            txt = f"#{p['id']}" + (f"  {d:.0f} m del rebano" if d else "")
-            (tw, th), _ = cv2.getTextSize(txt, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-            tx = c[0] + 11 if c[0] + 11 + tw < lado - 4 else c[0] - 11 - tw   # que no se salga
-            ty = c[1] + 5
-            while any(abs(ty - uy) < th + 5 and abs(tx - ux) < tw for ux, uy in usados):
-                ty += th + 6                                                   # que no se encimen
+            num = f"#{p['id']}"
+            txt = f"{d:.0f} M DEL REBANO" if d else ""
+            w_num = _ancho_texto(num, px_l, esp_l) + 2 * relleno
+            w_txt = _ancho_texto(txt, px_l, esp_l) + 2 * relleno if txt else 0
+            tw = w_num + w_txt
+            tx = c[0] + e(18) if c[0] + e(18) + tw < lado - 4 else c[0] - e(18) - tw   # que no se salga
+            ty = int(np.clip(c[1] - alto_p // 2, e(34), lado - alto_p - 4))
+            while any(abs(ty - uy) < alto_p + 4 and abs(tx - ux) < tw for ux, uy in usados):
+                ty += alto_p + e(5)                                                # que no se encimen
             usados.append((tx, ty))
-            cv2.putText(img, txt, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (40, 40, 220), 1, cv2.LINE_AA)
+            zona = img[ty:ty + alto_p + 1, max(0, tx):tx + tw + 1]
+            zona[:] = np.uint8(zona * 0.18)
+            cv2.rectangle(img, (tx, ty), (tx + w_num, ty + alto_p), _ROJO, -1, cv2.LINE_AA)         # el numero, en una ficha llena
+            cv2.rectangle(img, (tx, ty), (tx + tw, ty + alto_p), _ROJO, linea, cv2.LINE_AA)
+            y_txt = ty + int(round((alto_p - px_l * 1.32) / 2))
+            textos.append((num, tx + relleno, y_txt, px_l, (12, 12, 12), esp_l))
+            if txt:
+                textos.append((txt, tx + w_num + relleno, y_txt, px_l, _ROJO, esp_l))
+    n_reb = sum(p["animales"] for p in puntos if p["estado"] == "rebano")
     n_ais = sum(1 for p in puntos if p["estado"] != "rebano")
-    cv2.putText(img, f"Rebano: {sum(p['animales'] for p in puntos if p['estado'] == 'rebano')}   "
-                     f"Aisladas: {n_ais}   cuadricula: {paso:g} m   norte arriba",
-                (12, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (30, 30, 30), 1, cv2.LINE_AA)
-    cv2.imwrite(ruta, img, [cv2.IMWRITE_JPEG_QUALITY, 92])
+    px_t, esp_t = int(round(11 * kf)), round(1.4 * kf)
+    cab = f"REBANO {n_reb}"
+    textos.append((cab, e(18), e(15), px_t, (240, 240, 240), esp_t))
+    textos.append((f"AISLADAS {n_ais}", e(18) + _ancho_texto(cab, px_t, esp_t) + e(22), e(15), px_t, _ROJO, esp_t))
+    resto = f"CUADRICULA {paso:g} M  \u00b7  NORTE ARRIBA"
+    textos.append((resto, lado - e(20) - _ancho_texto(resto, px_t, esp_t), e(15), px_t, (150, 150, 150), esp_t))
+    for ex, ey, sx, sy in ((e(12), e(12), 1, 1), (lado - e(13), e(12), -1, 1), (lado - e(13), lado - e(13), -1, -1), (e(12), lado - e(13), 1, -1)):
+        cv2.line(img, (ex, ey), (ex + sx * e(14), ey), (120, 120, 120), linea, cv2.LINE_AA)
+        cv2.line(img, (ex, ey), (ex, ey + sy * e(14)), (120, 120, 120), linea, cv2.LINE_AA)
+    cv2.imwrite(ruta, _escribir(img, textos, linea), [cv2.IMWRITE_JPEG_QUALITY, 90])
 
 
 def escribir_kml(puntos, ruta):
@@ -641,6 +842,7 @@ def main():
     ap.add_argument("--minimo-rebano", type=int, default=5, help="animales minimos para llamarlo rebano")
     ap.add_argument("--radio-duplicado", type=float, default=5.0, help="m: misma res vista en dos fotos")
     ap.add_argument("--lindero", default="", help="KML con el poligono de la finca")
+    ap.add_argument("--ancho", type=int, default=3840, help="ancho en pixeles de las imagenes de salida (3840 = 4K; 1920 pesa la cuarta parte)")
     ap.add_argument("--altura", type=float, default=None, help="m sobre el suelo, si la foto no lo trae")
     ap.add_argument("--yaw", type=float, default=None, help="rumbo de la camara, si la foto no lo trae")
     ap.add_argument("--pitch", type=float, default=None, help="inclinacion (-90 = recto abajo)")
@@ -676,8 +878,8 @@ def main():
     for nombre, temp, manchas in por_foto:
         base = os.path.splitext(nombre)[0]
         cv2.imwrite(os.path.join(a.salida, base + "_termica.jpg"),
-                    falso_color(temp, manchas, f"{nombre}: {len(manchas)} manchas de calor"),
-                    [cv2.IMWRITE_JPEG_QUALITY, 92])
+                    falso_color(temp, manchas, f"{nombre}   {len(manchas)} manchas de calor", ancho_salida=a.ancho),
+                    [cv2.IMWRITE_JPEG_QUALITY, 88])
 
     with open(os.path.join(a.salida, "manchas.csv"), "w", newline="", encoding="utf8") as fh:
         w = csv.writer(fh)

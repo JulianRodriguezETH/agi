@@ -145,11 +145,16 @@ def main():
         acciones = [x[3] for x in b.bitacora()]
         comprobar("quedaron anotados usuarios, fincas, conteos y la exportación",
                   {"usuario_creado", "usuario_desactivado", "finca_creada", "conteo_guardado", "datos_exportados"} <= set(acciones))
+        # se guarda el texto original para devolverlo tal cual: deshacer con otro replace danaria el renglon cuando el
+        # codigo del conteo (que sale de la firma y cambia en cada corrida) trae un "300" propio
+        originales = b.con.execute("SELECT id, detalle FROM bitacora WHERE accion = 'conteo_guardado' AND detalle LIKE '%270%'").fetchall()
         b.con.execute("UPDATE bitacora SET detalle = replace(detalle, '270', '300') WHERE accion = 'conteo_guardado' AND detalle LIKE '%270%'")
         b.con.commit()
         ok, donde = b.verificar_bitacora()
         comprobar("cambiar un renglón por SQL se detecta", not ok, f"renglón {donde}")
-        b.con.execute("UPDATE bitacora SET detalle = replace(detalle, '300', '270') WHERE id = ?", (donde,)); b.con.commit()
+        for rid, detalle in originales:
+            b.con.execute("UPDATE bitacora SET detalle = ? WHERE id = ?", (detalle, rid))
+        b.con.commit()
         comprobar("al restaurarlo vuelve a cuadrar", b.verificar_bitacora()[0])
         b.con.execute("DELETE FROM bitacora WHERE id = 5"); b.con.commit()
         ok, donde = b.verificar_bitacora()

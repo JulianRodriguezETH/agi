@@ -122,6 +122,12 @@ def pintar_res(capa, pu, pv, largo, ancho, grados, mira_atras=False):
     arriba = [(x, w) for x, w in _PERFIL_RES]
     abajo = [(x, -w) for x, w in reversed(_PERFIL_RES)]
     poligono(arriba + abajo, 1.0)
+    r = int(largo) + 4                                           # el lomo irradia mas que los costados
+    y0, y1, x0, x1 = max(0, int(pv) - r), min(capa.shape[0], int(pv) + r), max(0, int(pu) - r), min(capa.shape[1], int(pu) + r)
+    if y1 > y0 and x1 > x0:
+        trozo = capa[y0:y1, x0:x1]
+        dist = cv2.distanceTransform(np.uint8(trozo > 0.5), cv2.DIST_L2, 3)
+        trozo *= 0.80 + 0.20 * np.clip(dist / max(0.30 * ancho, 1.0), 0, 1)
 
 
 def pintar_res_de_lado(capa, x_centro, y_suelo, largo, mira_izquierda=False):
@@ -137,47 +143,90 @@ def pintar_res_de_lado(capa, x_centro, y_suelo, largo, mira_izquierda=False):
 
     res = np.zeros_like(capa)
     cv2.fillPoly(res, [fijo(_SILUETA_LADO)], 1.0, cv2.LINE_AA, shift=4)
-    cv2.polylines(res, [fijo(_COLA_LADO)], False, 0.7, max(1, int(round(largo * 0.016))), cv2.LINE_AA, shift=4)
     cv2.fillPoly(res, [fijo(_OREJA_LADO)], 1.0, cv2.LINE_AA, shift=4)
     filas = np.arange(capa.shape[0], dtype=np.float32)[:, None]
     altura = np.clip((y_suelo - filas) / max(largo, 1.0), 0, 1)                    # 0 en el suelo, ~0.6 en el lomo
-    res *= 0.62 + 0.38 * np.clip((altura - 0.05) / 0.22, 0, 1)                     # las patas, mas frias hacia abajo
-    cab = px(0.93, 0.53)                                                           # la cabeza es lo mas caliente
+    res *= 0.70 + 0.30 * np.clip((altura - 0.05) / 0.22, 0, 1)                     # las patas, mas frias hacia abajo
+    dist = cv2.distanceTransform(np.uint8(res > 0.3), cv2.DIST_L2, 3)
+    res *= 0.56 + 0.44 * np.clip(dist / (0.12 * largo), 0, 1) ** 0.9               # volumen: el borde irradia menos que el centro
     yy, xx = np.mgrid[0:capa.shape[0], 0:capa.shape[1]].astype(np.float32)
-    res *= 1.0 + 0.16 * np.exp(-(((xx - cab[0]) ** 2 + (yy - cab[1]) ** 2) / (2 * (0.07 * largo) ** 2)))
+
+    def foco(x, y, radio, cuanto):                                                 # una zona mas caliente (o mas fria) del cuerpo
+        c = px(x, y)
+        return 1.0 + cuanto * np.exp(-(((xx - c[0]) ** 2 + (yy - c[1]) ** 2) / (2 * (radio * largo) ** 2)))
+
+    res *= foco(0.93, 0.53, 0.07, 0.22)                                            # la cabeza es lo mas caliente
+    res *= foco(0.66, 0.42, 0.10, 0.10) * foco(0.30, 0.42, 0.12, 0.08)             # paleta y anca
+    res *= foco(0.47, 0.30, 0.09, -0.10)                                           # la barriga, a la sombra, algo mas fria
+    res = np.minimum(res, 1.0)
+    cola = np.zeros_like(capa)                                                     # la cola, pegada al anca, mas fria que el cuerpo
+    cv2.polylines(cola, [fijo(_COLA_LADO)], False, 0.6, max(1, int(round(largo * 0.016))), cv2.LINE_AA, shift=4)
+    np.maximum(res, cola, out=res)
     np.maximum(capa, res, out=capa)
 
 
+def _ruido_mosaico(rng, lado=512, sigma=4.0):
+    """Ruido suave que se repite sin costura, para usarlo de textura del suelo. Media 0, desviacion 1."""
+    r = np.tile(rng.normal(0, 1, (lado, lado)).astype(np.float32), (3, 3))
+    r = cv2.GaussianBlur(r, (0, 0), sigma)[lado:2 * lado, lado:2 * lado]
+    return (r - r.mean()) / (r.std() + 1e-6)
+
+
+def _muestra(tex, x, y):
+    lado = tex.shape[0]
+    return cv2.remap(tex, np.mod(x, lado).astype(np.float32), np.mod(y, lado).astype(np.float32), cv2.INTER_LINEAR,
+                     borderMode=cv2.BORDER_WRAP)
+
+
 def toma_oblicua(semilla=21, W=640, H=512):
-    """Una toma termica simulada con la camara inclinada: el rebano de lado, en un potrero al amanecer.
-    Devuelve la temperatura en grados C. Solo para mostrar siluetas: la ubicacion en el mapa usa las tomas a plomo."""
+    """Una toma termica simulada con la camara inclinada: el rebano de lado, en un potrero al amanecer, con pasto, matas,
+    una trocha de ganado, un jagueey y la linea de arboles al fondo. Devuelve la temperatura en grados C.
+    Solo para mostrar siluetas: la ubicacion en el mapa usa las tomas a plomo. La escena es la misma con cualquier
+    sensor (640 x 512 o 1280 x 1024): solo cambia cuanto detalle alcanza a ver."""
     rng = np.random.default_rng(semilla)
+    s = W / 640.0
     horizonte = int(H * 0.20)
-    v = np.arange(H, dtype=np.float32)[:, None]
-    prof = np.clip((v - horizonte) / (H - horizonte), 0, 1)                        # 0 en el horizonte, 1 al pie de la foto
-    ruido = cv2.GaussianBlur(rng.normal(0, 1, (H, W)).astype(np.float32), (0, 0), 22)
-    ruido2 = cv2.GaussianBlur(rng.normal(0, 1, (H, W)).astype(np.float32), (0, 0), 5)
-    temp = 22.3 + 1.1 * prof + 7.0 * ruido + 1.2 * ruido2 * prof                   # pasto: mas tibio cerca, con manchas suaves
+    v, u = np.mgrid[0:H, 0:W].astype(np.float32)
+    foco, h_cam = float(W), 6.5                                                    # camara a 6.5 m, mirando al horizonte
+    bajo = np.maximum(v - horizonte, 0.5)
+    Z = h_cam * foco / bajo                                                        # metros hacia adelante de cada pixel del suelo
+    X = (u - W / 2) * Z / foco                                                     # metros a la derecha
+    pisada = Z * Z / (h_cam * foco)                                                # metros de suelo que cubre un pixel (a lo lejos, muchos)
+    tex = [_ruido_mosaico(rng) for _ in range(3)]
+    temp = 22.4 + 0.9 * np.clip(bajo / (H - horizonte), 0, 1)                      # pasto: algo mas tibio cerca
+    for i, (onda, grados) in enumerate(((0.35, 0.30), (1.1, 0.34), (3.5, 0.42), (11.0, 0.50), (36.0, 0.40))):
+        nitidez = np.clip((onda / pisada - 1.5) / 2.0, 0, 1)                       # un detalle mas chico que el pixel no se ve
+        temp = temp + grados * nitidez * _muestra(tex[i % 3], X * 16 / onda + 91 * i, Z * 16 / onda + 37 * i)
+    matas = np.clip((_muestra(tex[1], X * 4.2 + 200, Z * 4.2 + 60) - 1.05) / 0.5, 0, 1)                  # matas y rastrojo, mas frios
+    temp = temp - 1.5 * matas * (0.7 + 0.3 * _muestra(tex[0], X * 40, Z * 40)) * np.clip((4.0 / pisada - 1.5) / 2.0, 0, 1)
+    trocha = np.abs(X - (2.6 * np.sin(Z / 7.5) + 0.13 * Z - 4.5))                  # la trocha del ganado: tierra pelada, mas tibia
+    temp = temp + 1.3 * np.clip(1.0 - trocha / (0.45 + pisada), 0, 1) * np.clip(1.2 - pisada, 0, 1)
+    jaguey = ((X + 10.5) / 7.0) ** 2 + ((Z - 31.0) / 4.5) ** 2                     # un jagueey: agua fria y pareja
+    agua = np.clip((1.0 - jaguey) * 4, 0, 1)
+    temp = temp * (1 - agua) + 21.0 * agua
     cielo = v < horizonte
-    temp = np.where(cielo, 21.4 + 0.6 * (v / max(horizonte, 1)), temp).astype(np.float32)        # cielo frio y parejo
-    lomas = horizonte - 6 - 10 * cv2.GaussianBlur(rng.random((1, W)).astype(np.float32), (0, 0), 30)[0]
-    for x in range(W):                                                             # una linea de arboles tibios al fondo
-        temp[int(lomas[x]):horizonte + 2, x] = 23.1
+    temp = np.where(cielo, 20.3 + 0.5 * (v / max(horizonte, 1)), temp).astype(np.float32)                 # cielo frio y parejo
+    col = np.arange(W, dtype=np.float32)
+    copa = s * (9 + 5 * np.clip(_muestra(tex[2], col[None, :] * 0.7 / s, np.full((1, W), 40.0))[0], -1.6, 1.6)
+                + 4 * np.clip(_muestra(tex[0], col[None, :] * 3.0 / s, np.full((1, W), 200.0))[0], -1, 1))                 # la linea de arboles del fondo
+    arbol = (v > horizonte - copa[None, :]) & (v < horizonte + 2 * s)
+    temp = np.where(arbol, 22.9 + 0.55 * _muestra(tex[1], u * 3.0 / s, v * 3.0 / s) - 0.05 * (horizonte - v) / s, temp).astype(np.float32)
     reses, intentos = [], 0
-    while len(reses) < 8 and intentos < 6000:
+    while len(reses) < 9 and intentos < 8000:
         intentos += 1
-        t = float(rng.uniform(0.10, 1.0)) ** 0.8
-        largo = 30 + 112 * t
-        x, y = float(rng.uniform(0.06, 0.94) * W), horizonte + 10 + (H * 0.97 - horizonte - 10) * t
-        libre = all(abs(x - r[0]) > 0.56 * (largo + r[2]) or not (y - 0.80 * largo < r[1] + 6 and r[1] - 0.80 * r[2] < y + 6)
+        t = float(rng.uniform(0.08, 1.0)) ** 0.8
+        largo = (30 + 112 * t) * s
+        x, y = float(rng.uniform(0.06, 0.94) * W), horizonte + 10 * s + (H * 0.97 - horizonte - 10 * s) * t
+        libre = all(abs(x - r[0]) > 0.56 * (largo + r[2]) or not (y - 0.80 * largo < r[1] + 6 * s and r[1] - 0.80 * r[2] < y + 6 * s)
                     for r in reses)                                                # sin taparse: cada silueta entera
         if libre and 0.55 * largo < x < W - 0.55 * largo:
-            reses.append((x, y, largo, bool(rng.random() < 0.45), float(rng.uniform(5.5, 10.0))))
+            reses.append((x, y, largo, bool(rng.random() < 0.45), float(rng.uniform(7.0, 10.0))))
     for x, y, largo, izq, dt in sorted(reses, key=lambda r: r[1]):                 # primero las del fondo
         capa = np.zeros((H, W), np.float32)
         pintar_res_de_lado(capa, x, y, largo, izq)
-        temp = np.where(capa > 0.02, np.maximum(temp, 23.0) * (1 - np.clip(capa * 3, 0, 1)) + (23.5 + capa * dt) * np.clip(capa * 3, 0, 1),
-                        temp).astype(np.float32)
+        pelo = 1.0 + 0.05 * _muestra(tex[2], (u * 1.3 + x) / s, (v * 1.3 + y) / s)   # el pelaje no irradia parejo
+        cubre = np.clip(capa * 3.5, 0, 1)
+        temp = np.where(capa > 0.02, temp * (1 - cubre) + (24.6 + capa * pelo * dt) * cubre, temp).astype(np.float32)
     return cv2.GaussianBlur(temp, (0, 0), 0.7) + rng.normal(0, 0.2, (H, W)).astype(np.float32)
 
 
@@ -196,19 +245,53 @@ def simular(guardar=""):
                 (300.0, 45.0, 2.1, 0.8, 8.0), (302.5, 47.0, 1.1, 0.45, 9.0)]  # las dos ultimas: vaca con cria
     animales = [(a, rng.uniform(0, 180)) for a in rebano + aisladas]
 
+    # el terreno de la finca: pasto con vetas, peladeros tibios, rastrojo, arboles (copas mas frias) y una canada
+    rt, PASO_M, BORDE = np.random.default_rng(3), 0.125, 60.0
+    tex = [_ruido_mosaico(rt) for _ in range(3)]
+    mw, mh = int((400 + 2 * BORDE) / PASO_M), int((300 + 2 * BORDE) / PASO_M)
+    copas = np.zeros((mh, mw), np.float32)
+    lejos = [(110.0, 90.0, 62.0)] + [(a[0], a[1], 10.0) for a in aisladas]         # sin arboles sobre el rebano ni las aisladas
+    for k in range(420):
+        if k < 170:                                                                # muchos, a lo largo de la canada
+            ae = float(rt.uniform(-BORDE, 400 + BORDE)); an = float(236 - 0.27 * ae + 11 * math.sin(ae / 38.0) + rt.normal(0, 8))
+        else:
+            ae, an = float(rt.uniform(-BORDE, 400 + BORDE)), float(rt.uniform(-BORDE, 300 + BORDE))
+        radio = float(rt.uniform(1.6, 4.6))
+        if all(math.hypot(ae - x, an - y) > r + radio for x, y, r in lejos):
+            for _ in range(6):                                                     # una copa: varios lobulos
+                de, dn = rt.normal(0, radio * 0.38, 2)
+                cv2.circle(copas, (int((ae + de + BORDE) / PASO_M), int((an + dn + BORDE) / PASO_M)),
+                           int(radio * rt.uniform(0.5, 0.78) / PASO_M), 1.0, -1, cv2.LINE_AA)
+    copas = cv2.GaussianBlur(copas, (0, 0), 2.2)
+
     def suelo(E, N):
-        """Temperatura del suelo: 24 C con variacion suave, un charco tibio,
+        """Temperatura del suelo: 24 C con el pasto, los arboles y la canada, mas un charco tibio,
         un camino tibio y piedras tibias pequenas (nada de eso es ganado)."""
         t = 24 + 1.2 * np.sin(E / 37.0) * np.cos(N / 51.0)
+        for i, (onda, grados) in enumerate(((0.18, 0.11), (0.5, 0.15), (1.5, 0.19), (5.0, 0.17), (18.0, 0.18), (60.0, 0.18))):
+            t = t + grados * _muestra(tex[i % 3], E * 16 / onda + 53 * i, N * 16 / onda + 29 * i)
+        vetas = _muestra(tex[0], (E + 0.6 * N) * 1.1, (N - 0.6 * E) * 9.0)         # el pasto, peinado por el viento
+        t = t + 0.14 * vetas
+        pelado = np.clip((_muestra(tex[1], E * 1.7 + 300, N * 1.7 + 120) - 1.15) / 0.25, 0, 1)        # peladeros: tierra tibia
+        t = t + pelado * (0.55 + 0.12 * _muestra(tex[2], E * 20, N * 20))
+        rastrojo = np.clip((_muestra(tex[2], E * 6.0 + 70, N * 6.0 + 410) - 1.45) / 0.3, 0, 1)        # matas: frias y chicas
+        t = t - 0.7 * rastrojo
+        canada = np.abs(N - (236 - 0.27 * E + 11 * np.sin(E / 38.0)))
+        t = t - 0.9 * np.clip(1.0 - canada / 1.5, 0, 1)
+        copa = cv2.remap(copas, ((E + BORDE) / PASO_M).astype(np.float32), ((N + BORDE) / PASO_M).astype(np.float32),
+                         cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        t = t - copa * (1.0 + 0.28 * _muestra(tex[1], E * 26, N * 26))
         t = t + 5.0 * ((((E - 230) / 14.0) ** 2 + ((N - 170) / 9.0) ** 2) < 1)       # charco 28 x 18 m
         t = t + 4.5 * ((np.abs(N - 0.5 * E - 120) < 0.6) & (E > 150) & (E < 260))     # camino de 1.3 m
         for (rx, ry) in ((60, 200), (180, 60), (350, 150), (270, 280)):
             t = t + 6.0 * (np.hypot(E - rx, N - ry) < 0.2)                            # piedras de 40 cm
         return t
 
-    def toma(E0, N0, yaw, altura):
-        """La foto termica que tomaria el dron en (E0, N0) a esa altura, mirando recto hacia abajo."""
-        g = T.gsd_nadir(altura, F)
+    def toma(E0, N0, yaw, altura, k=1):
+        """La foto termica que tomaria el dron en (E0, N0) a esa altura, mirando recto hacia abajo.
+        k=2: el mismo cuadro con un sensor de 1280 x 1024 (como el de una H30T), para las imagenes de muestra."""
+        W, H = 640 * k, 512 * k
+        g = T.gsd_nadir(altura, F) / k
         ps = math.radians(yaw)
         h = np.array([math.sin(ps), math.cos(ps)]); r = np.array([math.cos(ps), -math.sin(ps)])
         u, v = np.meshgrid(np.arange(W) - W / 2 + 0.5, np.arange(H) - H / 2 + 0.5)
@@ -225,7 +308,7 @@ def simular(guardar=""):
                 temp = temp + capa * dt
         return cv2.GaussianBlur(temp, (0, 0), 0.8) + rng.normal(0, 0.25, (H, W)).astype(np.float32)
 
-    fotos = []
+    fotos, tomas = [], {}
     k = 0
     lineas = np.arange(15, 300, 32)
     for li, N0 in enumerate(lineas):
@@ -234,6 +317,7 @@ def simular(guardar=""):
         for E0 in (xs if li % 2 == 0 else xs[::-1]):
             k += 1
             temp = toma(E0, N0, yaw, ALT)
+            tomas[f"SIM_{k:04d}_T.JPG"] = (E0, N0, yaw)
             # el GPS del dron se equivoca ~1 m
             ge, gn = E0 + rng.normal(0, 1.0), N0 + rng.normal(0, 1.0)
             lat, lon = T.metros_a_latlon(LAT0, LON0, ge, gn)
@@ -265,29 +349,40 @@ def simular(guardar=""):
 
     if guardar:
         os.makedirs(guardar, exist_ok=True)
+        CALIDAD = [cv2.IMWRITE_JPEG_QUALITY, 86]
         T.dibujar_mapa(puntos, os.path.join(guardar, "mapa_simulado.jpg"))
         T.escribir_kml(puntos, os.path.join(guardar, "aisladas_simulado.kml"))
-        for nombre, temp, manchas in por_foto:
+        # las imagenes de muestra se toman con un sensor de 1280 x 1024: el mismo cuadro, con el doble de detalle.
+        # Cada mancha hereda el estado (rebano o aislada) que le dio el analisis del vuelo completo.
+        g2 = T.gsd_nadir(ALT, F) / 2
+        for nombre, _temp, manchas in por_foto:
             if any(m.get("estado") == "aislada" for m in manchas) or nombre.endswith("_0024_T.JPG"):
+                fina = toma(*tomas[nombre], ALT, k=2)
+                finas = []
+                for m2 in T.detectar_manchas(fina, gsd=g2)[0]:
+                    cerca_de = min(manchas, key=lambda m: math.hypot(m["x"] * 2 - m2["x"], m["y"] * 2 - m2["y"]))
+                    if math.hypot(cerca_de["x"] * 2 - m2["x"], cerca_de["y"] * 2 - m2["y"]) < 24:
+                        m2["estado"] = cerca_de.get("estado")
+                        finas.append(m2)
                 cv2.imwrite(os.path.join(guardar, nombre.replace(".JPG", "_termica.jpg")),
-                            T.falso_color(temp, manchas, f"{nombre}   simulated   {len(manchas)} hot spots"))
+                            T.falso_color(fina, finas, f"{nombre}   simulated   {len(finas)} hot spots", "ISOLATED"), CALIDAD)
         # una pasada baja (30 m) sobre el rebano, donde la silueta de cada res se distingue bien
         g30 = T.gsd_nadir(30.0, F)
         mejor = max(((sum(1 for (ax, ay, *_r), _a in animales if abs(ax - cx) < W * g30 / 2 - 1.5 and abs(ay - cy) < H * g30 / 2 - 1.5), cx, cy)
                      for cx in np.arange(70, 151, 2.0) for cy in np.arange(50, 131, 2.0)))
         lat, lon = T.metros_a_latlon(LAT0, LON0, mejor[1], mejor[2])
-        baja = [("SIM_30M_T.JPG", toma(mejor[1], mejor[2], 0.0, 30.0),
-                 {"lat": lat, "lon": lon, "altura": 30.0, "yaw": 0.0, "pitch": -90.0, "focal_mm": F})]
+        baja = [("SIM_30M_T.JPG", toma(mejor[1], mejor[2], 0.0, 30.0, k=2),
+                 {"lat": lat, "lon": lon, "altura": 30.0, "yaw": 0.0, "pitch": -90.0, "focal_mm": 2 * F})]   # 2F: el pixel mide la mitad
         _p, por_baja, _s = T.analizar(baja, informar=lambda *_: None)
         nombre, temp, manchas = por_baja[0]
         print(f"     pasada baja a 30 m: {mejor[0]} reses en el cuadro, {len(manchas)} manchas")
         cv2.imwrite(os.path.join(guardar, "SIM_30M_T_termica.jpg"),
-                    T.falso_color(temp, manchas, f"{nombre}   simulated   30 m   {len(manchas)} hot spots"))
+                    T.falso_color(temp, manchas, f"{nombre}   simulated   30 m   {len(manchas)} hot spots", "ISOLATED"), CALIDAD)
         # y una toma con la camara inclinada, donde se ve la silueta de lado (sin ubicacion: no trae coordenadas)
-        obl = T.analizar([("SIM_OBLIQUE_T.JPG", toma_oblicua(), {})], informar=lambda *_: None)[1][0]
-        print(f"     toma inclinada: 8 reses en el cuadro, {len(obl[2])} manchas")
+        obl = T.analizar([("SIM_OBLIQUE_T.JPG", toma_oblicua(W=1280, H=1024), {})], informar=lambda *_: None)[1][0]
+        print(f"     toma inclinada: 9 reses en el cuadro, {len(obl[2])} manchas")
         cv2.imwrite(os.path.join(guardar, "SIM_OBLIQUE_T_termica.jpg"),
-                    T.falso_color(obl[1], obl[2], f"{obl[0]}   simulated   oblique view   {len(obl[2])} hot spots"))
+                    T.falso_color(obl[1], obl[2], f"{obl[0]}   simulated   oblique view   {len(obl[2])} hot spots", "ISOLATED"), CALIDAD)
 
 
 def main():
